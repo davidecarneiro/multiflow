@@ -1,6 +1,118 @@
 # MultiFlow
 
+## Useful and relevant shortcuts
 
+### Starting your local repository
+```
+cd <repository>
+```
+
+```
+git init
+```
+
+```
+git remote add origin https://gitlab.estg.ipp.pt/mtsds-grupo4/mtsds-grupo4.git
+```
+
+
+### Checkout Branch:
+- git checkout master: Switches to the 'master' branch.
+
+```
+git checkout master
+```
+- git pull: Fetches changes from the remote repository and integrates them into the current branch.
+```
+git pull
+```
+
+
+### To create a **New** or using a already **Existing** Checkout **Task Branch**:
+- [NEW] git checkout -B task/7-Desenhar-form: Creates a new branch named 'task/7-Desenhar-form' and switches to it. If the branch exists, it creates it anew. This is oviously an example.
+
+```
+git checkout -B task/x-task-name
+```
+- [EXISTS] git checkout task/7-Desenhar-form: Switches to an existing branch named 'task/7-Desenhar-form'. This is oviously an example too.
+
+```
+git checkout task/x-task-name
+```
+
+### Daily Workflow:
+- git status: Displays the current status of the repository, including changes to tracked files.
+
+```
+git status
+```
+- git add .: Stages all changes in the current directory for the next commit.
+
+```
+git add .
+```
+- git commit -a -m "Brief description of the task": Commits changes with a brief message describing the task.
+
+```
+git commit -a -m "Brief description of the task"
+```
+- git push -u origin YOUR_BRANCH: Pushes changes to the remote repository, setting the upstream branch to 'YOUR_BRANCH'.
+
+```
+git push -u origin YOUR_BRANCH
+```
+
+### Pull Request Workflow:
+- git checkout master: Switches to the 'master' branch.
+
+```
+git checkout master
+```
+- git pull: Fetches and integrates changes from the remote 'master' branch.
+
+```
+git pull
+```
+- git checkout YOUR_BRANCH: Switches to your working branch.
+
+```
+git checkout YOUR_BRANCH
+```
+- git rebase master: Reapplies your changes on top of the 'master' branch, ensuring a linear history and avoiding unnecessary merge commits.
+
+```
+git rebase master
+```
+- git add .: Stages changes for the next commit.
+
+```
+git add .
+```
+- git commit -a -m "Rebase from master": Commits changes with a message specifying the rebase from the 'master' branch.
+
+```
+git commit -a -m "Rebase from master"
+```
+
+
+
+## Getting started
+
+To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+
+## Add your files
+
+- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
+- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+
+```
+cd existing_repo
+git remote add origin https://gitlab.estg.ipp.pt/mtsds-grupo4/mtsds-grupo4.git
+git branch -M master
+git push -uf origin master
+```
+
+_________________________________________________________________
 
 ## Getting started
 
