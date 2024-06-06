@@ -1,0 +1,143 @@
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    networks: 
+      - broker-kafka
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka_server
+    networks: 
+      - broker-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_RETENTION_MINUTES: 10080
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop_server
+    networks: 
+      - broker-kafka
+    depends_on:
+      - kafka
+    ports:
+      - 19000:9000
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb_server
+    networks: 
+      - broker-kafka
+    ports:
+      - "27017:27017"
+
+  faust: #c nome para ->faust
+    build:
+      context: ./app/faust  # Specify the path to the directory containing your Faust Dockerfile
+    container_name: faust_server #alterar nome para ->faust
+    networks: 
+      - broker-kafka
+    depends_on:
+      - kafka
+    volumes:
+      - ./app/faust/code:/app
+      - ./app/faust/server:/server
+      - ./app/faust/models:/app/models
+    ports:
+      - 6066:9092
+      - 5010:5010
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    container_name: grafana_server
+    networks:
+      - broker-kafka
+    restart: always
+    volumes:
+     - ./grafana/data:/var/lib/grafana
+     - /var/lib/grafana/plugins
+     - ./grafana/config/grafana.ini:/etc/grafana/grafana.ini
+    ports:
+     - "3002:3002"
+
+  appapi:
+    build:
+      context: ./app/mongo-grafana-bridge  # Specify the path to the directory containing your appapi Dockerfile
+    container_name: appapi_server
+    networks: 
+      - broker-kafka
+    depends_on:
+      - kafka
+    volumes:
+      - ./app/mongo-grafana-bridge/code:/app
+    ports:
+      - "8081:8081"
+    environment:
+      FLASK_APP: app.py
+      FLASK_RUN_HOST: 0.0.0.0
+      FLASK_RUN_PORT: 8081
+    command: flask run
+
+  node:
+    build:
+      context: ./app/node
+      dockerfile: Dockerfile
+    container_name: node
+    networks:
+      - broker-kafka
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./app/node:/usr/src/app
+    depends_on:
+      - mongodb
+
+  react:
+    build:
+      context: ./app/react-app
+      dockerfile: Dockerfile
+    container_name: react
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app/react-app:/usr/src/app
+    depends_on:
+      - node
+    networks:
+      - broker-kafka
+
+  websocket:
+    build:
+      context: ./app/ws  # Specify the path to the directory containing your WebSocket server Dockerfile
+    container_name: websocket_server
+    networks: 
+      - broker-kafka
+    ports:
+      - "8082:8082"  # Mapeie a porta 8082 do contêiner para a porta 8082 do host
+    volumes:
+      - ./app/ws:/usr/src/app
+      - ./datasets:/usr/src/app/datasets
+
+networks: 
+  broker-kafka:
+    driver: bridge

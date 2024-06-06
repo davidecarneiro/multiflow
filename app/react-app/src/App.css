@@ -1,0 +1,28 @@
+/* App.css */
+
+/* Use Montserrat Bold for titles */
+h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 650;
+}
+
+/* Use Montserrat Semibold for text */
+span, .text-regular, li {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 525;
+}
+
+.page-title{
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 650;
+  font-size: xxx-large;
+}
+
+.custom-list-item {
+ background-color: #e6e6e6;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 550 !important;
+}

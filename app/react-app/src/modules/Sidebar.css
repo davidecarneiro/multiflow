@@ -1,0 +1,11 @@
+/* Use Montserrat Bold for titles */
+.sidebar-header{
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    text-align: center;
+  }
+
+.sidebar-option, .nav-link{
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+}
