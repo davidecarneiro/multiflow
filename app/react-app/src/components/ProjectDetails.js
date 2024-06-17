@@ -217,7 +217,6 @@ function ProjectDetails() {
                                                         <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(stream.dateCreated)}</label>
                                                     </div>
                                                 </div>
-                                                <FontAwesomeIcon className='me-1' onClick={() => handleProjectStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} style={{ cursor: 'pointer', fontSize: '30px', display: 'flex', justifyContent: 'center' }} />
                                             </div>
                                         </div>
                                     </div>
