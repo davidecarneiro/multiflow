@@ -257,10 +257,10 @@ function Projects() {
                                       <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(stream.dateCreated)}</label>
                                     </div>
                                   </div>
-                                  {/* Project status button */}
+                                  {/* Stream status */}
                                   <div className='col-md-3'>
                                     <div className='d-flex align-items-center justify-content-end me-1'>
-                                      <FontAwesomeIcon onClick={() => handleStreamStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} style={{ cursor: 'pointer', fontSize: '25px', display: 'flex', justifyContent: 'center' }} />
+                                      {/* Status indicator to be inserted here in a future task */}
                                     </div>
                                   </div>
                                 </div>
