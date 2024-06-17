@@ -10,10 +10,7 @@ function Projects() {
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-
-  //
   const [totalPercentage, setTotalPercentage] = useState(0);
-  //
 
   // Get all projects
   useEffect(() => {

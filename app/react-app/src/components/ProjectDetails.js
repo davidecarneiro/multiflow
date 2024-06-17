@@ -11,55 +11,65 @@ function ProjectDetails() {
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [totalPercentage, setTotalPercentage] = useState(0);
 
-    // Endpoint to get project details
+    // Get project details
     useEffect(() => {
-        const fetchProjectDetails = async () => {
-            try {
-                const response = await axios.get(`http://localhost:3001/projects/${id}`);
-                setProject(response.data);
-                setLoading(false);
-            } catch (error) {
-                console.error('Error fetching project details:', error);
-                setLoading(false);
-            }
-        };
-
         fetchProjectDetails();
     }, [id]);
 
-    // Function to start and stop stream (using endpoints)
-    const handleStreamStatus = async (streamId, status) => {
+    // Endpoint to get project details
+    const fetchProjectDetails = async () => {
+        try {
+            const response = await axios.get(`http://localhost:3001/projects/${id}`);
+            setProject(response.data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching project details:', error);
+            setLoading(false);
+        }
+    };
+    fetchProjectDetails();
+
+    // Function to start and stop project (using endpoints)
+    const handleProjectStatus = async (projectId, status) => {
         try {
             if (status) {
-                // Stop stream
-                await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
-                // Update the status of the stream in the local state
-                setProject(prevProject => ({
-                    ...prevProject,
-                    streams: prevProject.streams.map(stream => {
-                        if (stream._id === streamId) {
-                            return { ...stream, status: false };
-                        }
-                        return stream;
-                    })
-                }));
+                // Stop project
+                await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
+                console.log("--> Stop Project");
             } else {
-                // Start stream
-                await axios.put(`http://localhost:3001/streams/start/${streamId}`);
-                // Update the status of the stream in the local state
-                setProject(prevProject => ({
-                    ...prevProject,
-                    streams: prevProject.streams.map(stream => {
-                        if (stream._id === streamId) {
-                            return { ...stream, status: true };
-                        }
-                        return stream;
-                    })
-                }));
+                // Start project
+                await axios.put(`http://localhost:3001/projects/start/${projectId}`);
+                console.log("--> Play Project");
+                const ws = new WebSocket('ws://localhost:8082');
+
+                // Event listeners for WebSocket events
+                ws.onopen = () => {
+                    console.log('WebSocket connection established');
+                    ws.send(projectId);
+                };
+
+                ws.onmessage = (event) => {
+                    console.log('Message received from server:', event.data);
+                    const data = JSON.parse(event.data);
+                    setTotalPercentage(prev => prev + data.percentage);
+                    console.log('Message received from server:', data);
+                    //setStatus(event.data);
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket connection closed');
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
             }
+            // Refresh project list after updating status
+            fetchProjectDetails(id);
         } catch (error) {
-            console.error('Error updating stream status:', error);
+            console.error('Error updating project status:', error);
         }
     };
 
@@ -207,7 +217,7 @@ function ProjectDetails() {
                                                         <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(stream.dateCreated)}</label>
                                                     </div>
                                                 </div>
-                                                <FontAwesomeIcon className='me-1' onClick={() => handleStreamStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} style={{ cursor: 'pointer', fontSize: '30px', display: 'flex', justifyContent: 'center' }} />
+                                                <FontAwesomeIcon className='me-1' onClick={() => handleProjectStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} style={{ cursor: 'pointer', fontSize: '30px', display: 'flex', justifyContent: 'center' }} />
                                             </div>
                                         </div>
                                     </div>
@@ -218,6 +228,15 @@ function ProjectDetails() {
                                 ))}
                             </>
                         )}
+                    </div>
+                </div>
+
+                {/* Project status */}
+                <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
+                <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                    <div className='card-body d-flex align-items-center'>
+                        <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
+                        <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
                     </div>
                 </div>
 
