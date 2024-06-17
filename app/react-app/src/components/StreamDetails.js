@@ -155,57 +155,6 @@ function StreamDetails() {
         return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
-    // Function to start and stop stream (using endpoints)
-    const handleStreamStatus = async (streamId, status) => {
-        try {
-            if (status) {
-                // Stop stream
-                await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
-                // Update the status of the stream in the local state
-                setStream(prevStream => ({
-                    ...prevStream,
-                    status: false
-                }));
-
-                console.log("Pause");
-
-            } else {
-                // Start stream
-                await axios.put(`http://localhost:3001/streams/start/${streamId}`);
-                // Update the status of the stream in the local state
-                setStream(prevStream => ({
-                    ...prevStream,
-                    status: true
-                }));
-
-                /*const ws = new WebSocket('ws://localhost:8082');
-        
-                // Event listeners for WebSocket events
-                ws.onopen = () => {
-                    console.log('WebSocket connection established');
-                    ws.send("663ec152186fc7e4d15d0758");
-                };
-        
-                ws.onmessage = (event) => {
-                console.log('Message received from server:', event.data);
-                setStatus(event.data);
-                };
-        
-                ws.onclose = () => {
-                console.log('WebSocket connection closed');
-                };
-        
-                ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                };*/
-
-                console.log("Play");
-            }
-        } catch (error) {
-            console.error('Error updating stream status:', error);
-        }
-    };
-
     // To show up when loading stream details
     if (loading) {
         return <div className='container'><div className='page-header mt-2'><h4 className='page-title'>Loading stream details...</h4></div></div>;
@@ -381,15 +330,6 @@ function StreamDetails() {
                                 </div>
                             </div>
                         )}
-                    </div>
-                </div>
-
-                {/* Stream status */}
-                <h5 className='mt-3' style={{ fontWeight: '650' }}>Stream Status</h5>
-                <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                    <div className='card-body d-flex align-items-center'>
-                        <FontAwesomeIcon onClick={() => handleStreamStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
-                        <span className='ms-4'>{stream.status ? 'Stream is currently running' : 'Stream is currently paused'}</span>
                     </div>
                 </div>
 

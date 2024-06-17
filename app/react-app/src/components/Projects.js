@@ -147,23 +147,6 @@ function Projects() {
     }
   };
 
-  // Function to start and stop stream (using endpoints)
-  const handleStreamStatus = async (streamId, status) => {
-    try {
-      if (status) {
-        // Stop stream
-        await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
-      } else {
-        // Start stream
-        await axios.put(`http://localhost:3001/streams/start/${streamId}`);
-      }
-      // Refresh stream list after updating status
-      fetchProjects();
-    } catch (error) {
-      console.error('Error updating stream status:', error);
-    }
-  };
-
   // Function to handle click event of "Add Project" button
   const handleAddProjectClick = () => {
     navigate('/add-project'); // Navigate to add project page
@@ -257,10 +240,10 @@ function Projects() {
                                       <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(stream.dateCreated)}</label>
                                     </div>
                                   </div>
-                                  {/* Project status button */}
+                                  {/* Stream status */}
                                   <div className='col-md-3'>
                                     <div className='d-flex align-items-center justify-content-end me-1'>
-                                      <FontAwesomeIcon onClick={() => handleStreamStatus(stream._id, stream.status)} icon={stream.status ? faPause : faPlay} style={{ cursor: 'pointer', fontSize: '25px', display: 'flex', justifyContent: 'center' }} />
+                                      {/* Status indicator to be inserted here in a future task */}
                                     </div>
                                   </div>
                                 </div>
