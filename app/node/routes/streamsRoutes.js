@@ -202,7 +202,7 @@ router.put('/:id', async (req, res) => {
             updateObject.dataSourceId = dataSourceId;
         }
         if (filePath) {
-            updateObject.description = filePath;
+            updateObject.filePath = filePath;
         }
         if (connectionString) {
             updateObject.connectionString = connectionString;

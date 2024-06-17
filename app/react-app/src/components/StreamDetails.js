@@ -20,37 +20,27 @@ function StreamDetails() {
     const [dataSource, setDataSource] = useState(null);
     const [playbackConfig, setPlaybackConfig] = useState(null);
 
-    //-->
-    //const [status, setStatus] = useState('');
-    //const [ws, setWs] = useState(null);
-
-    //const ws = new WebSocket('ws://localhost:8082');
-
-    
+    // Empty dependency array ensures this effect runs only once
     useEffect(() => {
-
         console.log("123...");
         //const ws = new WebSocket('ws://localhost:8082');
         /*
-        // Create a WebSocket connection to the server
-        const ws = new WebSocket('ws://localhost:8082');
-    
-        // Listen for messages from the server
-        ws.onmessage = (event) => {
-          setStatus(event.data);
+            // Create a WebSocket connection to the server
+            const ws = new WebSocket('ws://localhost:8082');
+        
+            // Listen for messages from the server
+            ws.onmessage = (event) => {
+            setStatus(event.data);
 
-          console.log(event.data);
-        };
-    
-        // Cleanup function to close the WebSocket connection
-        return () => {
-          ws.close();
-        };
-
+            console.log(event.data);
+            };
+        
+            // Cleanup function to close the WebSocket connection
+            return () => {
+            ws.close();
+            };
         */
-
-
-      }, []); // Empty dependency array ensures this effect runs only once
+    }, []);
 
     // Endpoint to get stream details
     useEffect(() => {
@@ -178,7 +168,7 @@ function StreamDetails() {
                 }));
 
                 console.log("Pause");
-      
+
             } else {
                 // Start stream
                 await axios.put(`http://localhost:3001/streams/start/${streamId}`);
@@ -188,31 +178,28 @@ function StreamDetails() {
                     status: true
                 }));
 
-                
-        /*const ws = new WebSocket('ws://localhost:8082');
-
-        // Event listeners for WebSocket events
-        ws.onopen = () => {
-            console.log('WebSocket connection established');
-            ws.send("663ec152186fc7e4d15d0758");
-        };
-
-        ws.onmessage = (event) => {
-        console.log('Message received from server:', event.data);
-        setStatus(event.data);
-        };
-
-        ws.onclose = () => {
-        console.log('WebSocket connection closed');
-        };
-
-        ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        };*/
-
+                /*const ws = new WebSocket('ws://localhost:8082');
+        
+                // Event listeners for WebSocket events
+                ws.onopen = () => {
+                    console.log('WebSocket connection established');
+                    ws.send("663ec152186fc7e4d15d0758");
+                };
+        
+                ws.onmessage = (event) => {
+                console.log('Message received from server:', event.data);
+                setStatus(event.data);
+                };
+        
+                ws.onclose = () => {
+                console.log('WebSocket connection closed');
+                };
+        
+                ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                };*/
 
                 console.log("Play");
-
             }
         } catch (error) {
             console.error('Error updating stream status:', error);
@@ -412,7 +399,7 @@ function StreamDetails() {
                         <h5 style={{ fontWeight: '650' }}>Project Associated</h5>
                         <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                             <div className='card-body'>
-                                
+
                                 <div>{project.name}</div>
                                 <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyProjectId}>
                                     <FontAwesomeIcon icon={faDiagramProject} />
