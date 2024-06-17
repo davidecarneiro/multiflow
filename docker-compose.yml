@@ -112,19 +112,19 @@ services:
     depends_on:
       - mongodb
 
-  react:
-    build:
-      context: ./app/react-app
-      dockerfile: Dockerfile
-    container_name: react
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./app/react-app:/usr/src/app
-    depends_on:
-      - node
-    networks:
-      - broker-kafka
+  # react:
+  #   build:
+  #     context: ./app/react-app
+  #     dockerfile: Dockerfile
+  #   container_name: react
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./app/react-app:/usr/src/app
+  #   depends_on:
+  #     - node
+  #   networks:
+  #     - broker-kafka
 
   websocket:
     build:
