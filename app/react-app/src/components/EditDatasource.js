@@ -67,7 +67,7 @@ function EditDataSource() {
     };
 
     return (
-        <div className="container">
+        <div className="container-fluid">
             <div className='page-header mt-2'>
                 <h1 className='page-title'>Edit Data Source</h1>
             </div>

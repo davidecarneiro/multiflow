@@ -26,7 +26,7 @@ function App() {
         <Sidebar />
 
         {/* Main content */}
-        <div className="container">
+        <div className="container-fluid">
           <Routes>
             {/* Projects */}
             <Route path="/" element={<Projects />} />

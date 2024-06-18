@@ -110,7 +110,7 @@ function EditStream() {
     };
 
     return (
-        <div className="container">
+        <div className="container-fluid">
             <div className='page-header mt-2'>
                 <h1 className='page-title'>Edit Stream</h1>
             </div>

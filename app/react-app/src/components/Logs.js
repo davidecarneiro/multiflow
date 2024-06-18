@@ -53,7 +53,7 @@ function Logs() {
     }
 
     return (
-        <div className='container'>
+        <div className='container-fluid'>
             {/* Page header (title) */}
             <div className='page-header mt-2 d-flex justify-content-between align-items-center'>
                 <h1 className='page-title'>Logs</h1>
@@ -76,7 +76,7 @@ function Logs() {
                 <h4 className='mt-2'>There are no logs that match your search.</h4>
             ) : (
                 <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px', height: '60vh', overflowY: 'auto' }}>
-                    <div className='container ps-4 pe-4 pt-3 pb-4'>
+                    <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                         {logs.map(log => (
                             <div className="log-item" key={log._id}>
                                 <span style={{ display: 'block', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{log.content}</span>
