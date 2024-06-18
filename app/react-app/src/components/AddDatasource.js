@@ -1,29 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-function AddDataSource() {
+function AddDatasource() {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [dataSourceType, setDataSourceType] = useState('');
-    const [additionalField, setAdditionalField] = useState('');
+    const [connectionString, setConnectionString] = useState('');
+    const [filePath, setFilePath] = useState('');
+    const [files, setFiles] = useState([]);
 
-    const handleAdditionalFieldChange = (e) => {
-        setAdditionalField(e.target.value);
-    };
+    // Endpoint to get all files in the datasets folder
+    useEffect(() => {
+        const fetchFiles = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/dataSources/datasets');
+                setFiles(response.data);
+            } catch (error) {
+                console.error('Error fetching files:', error);
+            }
+        };
+
+        if (dataSourceType === 'File') {
+            fetchFiles();
+        }
+    }, [dataSourceType]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            let postData = { name, description, dataSourceType };
-            // Conditionally add additionalField based on dataSourceType
-            if (dataSourceType === 'SQL') {
-                postData.connectionString = additionalField;
-            } else if (dataSourceType === 'File') {
-                postData.filePath = additionalField;
-            }
+            const postData = {
+                name,
+                description,
+                dataSourceType,
+                connectionString: dataSourceType === 'SQL' ? connectionString : undefined,
+                filePath: dataSourceType === 'File' ? filePath : undefined,
+            };
+
             await axios.post('http://localhost:3001/dataSources', postData);
+
             // Redirect the user to the data sources page after adding the data source
             navigate('/dataSources');
         } catch (error) {
@@ -69,13 +85,18 @@ function AddDataSource() {
                                 {dataSourceType === 'SQL' && (
                                     <div className="mb-3 col-3">
                                         <label htmlFor="connectionString" className="form-label">Connection String</label>
-                                        <input type="text" className="form-control" id="connectionString" value={additionalField} onChange={handleAdditionalFieldChange} />
+                                        <input type="text" className="form-control" id="connectionString" value={connectionString} onChange={(e) => setConnectionString(e.target.value)} />
                                     </div>
                                 )}
                                 {dataSourceType === 'File' && (
                                     <div className="mb-3 col-3">
                                         <label htmlFor="filePath" className="form-label">File Path</label>
-                                        <input type="text" className="form-control" id="filePath" value={additionalField} onChange={handleAdditionalFieldChange} />
+                                        <select className="form-select" id="filePath" value={filePath} onChange={(e) => setFilePath(e.target.value)}>
+                                            <option value="">Select a file</option>
+                                            {files.map((file) => (
+                                                <option key={file} value={`datasets/${file}`}>{file}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
                             </div>
@@ -91,4 +112,4 @@ function AddDataSource() {
     );
 }
 
-export default AddDataSource;
+export default AddDatasource;

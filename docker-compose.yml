@@ -47,10 +47,10 @@ services:
     ports:
       - "27017:27017"
 
-  faust: #c nome para ->faust
+  faust:
     build:
-      context: ./app/faust  # Specify the path to the directory containing your Faust Dockerfile
-    container_name: faust_server #alterar nome para ->faust
+      context: ./app/faust
+    container_name: faust_server
     networks: 
       - broker-kafka
     depends_on:
@@ -74,15 +74,15 @@ services:
       - broker-kafka
     restart: always
     volumes:
-     - ./grafana/data:/var/lib/grafana
-     - /var/lib/grafana/plugins
-     - ./grafana/config/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/data:/var/lib/grafana
+      - /var/lib/grafana/plugins
+      - ./grafana/config/grafana.ini:/etc/grafana/grafana.ini
     ports:
-     - "3002:3002"
+      - "3002:3002"
 
   appapi:
     build:
-      context: ./app/mongo-grafana-bridge  # Specify the path to the directory containing your appapi Dockerfile
+      context: ./app/mongo-grafana-bridge
     container_name: appapi_server
     networks: 
       - broker-kafka
@@ -109,31 +109,18 @@ services:
       - "3001:3001"
     volumes:
       - ./app/node:/usr/src/app
+      - ./datasets:/usr/src/app/datasets
     depends_on:
       - mongodb
 
-  # react:
-  #   build:
-  #     context: ./app/react-app
-  #     dockerfile: Dockerfile
-  #   container_name: react
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./app/react-app:/usr/src/app
-  #   depends_on:
-  #     - node
-  #   networks:
-  #     - broker-kafka
-
   websocket:
     build:
-      context: ./app/ws  # Specify the path to the directory containing your WebSocket server Dockerfile
+      context: ./app/ws
     container_name: websocket_server
     networks: 
       - broker-kafka
     ports:
-      - "8082:8082"  # Mapeie a porta 8082 do contêiner para a porta 8082 do host
+      - "8082:8082"
     volumes:
       - ./app/ws:/usr/src/app
       - ./datasets:/usr/src/app/datasets
