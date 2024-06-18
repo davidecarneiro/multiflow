@@ -24,7 +24,7 @@ function AddProject() {
   };
 
   return (
-    <div className="container">
+    <div className="container-fluid">
       {/* Page header */}
       <div className='page-header mt-2'>
         <h1 className='page-title'>Add new project</h1>

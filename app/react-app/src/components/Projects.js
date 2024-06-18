@@ -153,7 +153,7 @@ function Projects() {
   };
 
   return (
-    <div className='container'>
+    <div className='container-fluid'>
       {/* Page header (title and btn) */}
       <div className='page-header mt-2 d-flex justify-content-between align-items-center'>
         <h1 className='page-title'>Projects</h1>
