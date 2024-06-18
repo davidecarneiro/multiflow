@@ -9,8 +9,9 @@ function EditDataSource() {
     const [description, setDescription] = useState('');
     const [dataSourceType, setDataSourceType] = useState('');
     const [additionalField, setAdditionalField] = useState('');
+    const [files, setFiles] = useState([]);
 
-    // Getting data source details to prepopulate forms
+    // Fetching data source details and datasets on component mount
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -20,6 +21,9 @@ function EditDataSource() {
                 setDescription(description);
                 setDataSourceType(dataSourceType);
                 setAdditionalField(dataSourceType === 'SQL' ? connectionString : filePath);
+                if (dataSourceType === 'File') {
+                    fetchFiles();
+                }
             } catch (error) {
                 console.error('Error fetching data source:', error);
             }
@@ -27,6 +31,16 @@ function EditDataSource() {
 
         fetchData();
     }, [id]);
+
+    // Function to get the list of all datasets in datasets folder
+    const fetchFiles = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/dataSources/datasets');
+            setFiles(response.data);
+        } catch (error) {
+            console.error('Error fetching files:', error);
+        }
+    };
 
     const handleAdditionalFieldChange = (e) => {
         setAdditionalField(e.target.value);
@@ -36,14 +50,12 @@ function EditDataSource() {
         e.preventDefault();
         try {
             let postData = { name, description, dataSourceType };
-            // Conditionally add additionalField based on dataSourceType
             if (dataSourceType === 'SQL') {
                 postData.connectionString = additionalField;
             } else if (dataSourceType === 'File') {
                 postData.filePath = additionalField;
             }
             await axios.put(`http://localhost:3001/dataSources/${id}`, postData);
-            // Redirect the user to the data sources page after updating the data source
             navigate('/dataSources');
         } catch (error) {
             console.error('Error updating data source:', error);
@@ -51,18 +63,15 @@ function EditDataSource() {
     };
 
     const handleCancel = () => {
-        // Navigate back to the data sources page
         navigate('/dataSources');
     };
 
     return (
         <div className="container">
-            {/* Page header */}
             <div className='page-header mt-2'>
                 <h1 className='page-title'>Edit Data Source</h1>
             </div>
 
-            {/* Form */}
             <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
                 <div className='container ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
@@ -78,13 +87,19 @@ function EditDataSource() {
                             <div className='d-flex justify-content-start align-items-center'>
                                 <div className="mb-3 col-3 me-4">
                                     <label htmlFor="dataSourceType" className="form-label">Data Source Type</label>
-                                    <select className="form-select" id="dataSourceType" value={dataSourceType} onChange={(e) => setDataSourceType(e.target.value)}>
+                                    <select className="form-select" id="dataSourceType" value={dataSourceType} onChange={(e) => {
+                                        setDataSourceType(e.target.value);
+                                        setAdditionalField(''); // Reseting additionalField on dataSourceType change
+                                        if (dataSourceType !== 'File') {
+                                            fetchFiles();
+                                        }
+                                    }}>
                                         <option value="">Select Data Source Type</option>
                                         <option value="SQL">SQL</option>
                                         <option value="File">File</option>
                                     </select>
                                 </div>
-                                {/* Render additional field based on selected dataSourceType */}
+                                {/* Rendering additional field based on selected dataSourceType */}
                                 {dataSourceType === 'SQL' && (
                                     <div className="mb-3 col-3">
                                         <label htmlFor="connectionString" className="form-label">Connection String</label>
@@ -94,7 +109,12 @@ function EditDataSource() {
                                 {dataSourceType === 'File' && (
                                     <div className="mb-3 col-3">
                                         <label htmlFor="filePath" className="form-label">File Path</label>
-                                        <input type="text" className="form-control" id="filePath" value={additionalField} onChange={handleAdditionalFieldChange} />
+                                        <select className="form-select" id="filePath" value={additionalField} onChange={handleAdditionalFieldChange}>
+                                            <option value="">Select a file</option>
+                                            {files.map((file) => (
+                                                <option key={file} value={`datasets/${file}`}>{file}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
                             </div>

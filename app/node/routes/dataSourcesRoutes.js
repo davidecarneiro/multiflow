@@ -1,7 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const DataSources = require('../models/dataSources')
+const DataSources = require('../models/dataSources');
 const Logs = require('../models/logs');
+const fs = require('fs');
+const path = require('path');
+
+const datasetsFolder = path.resolve(__dirname, '../datasets');
+console.log('Datasets folder path:', datasetsFolder);
+
+// Example usage in an endpoint
+router.get('/datasets', (req, res) => {
+    fs.readdir(datasetsFolder, (err, files) => {
+        if (err) {
+            console.error('Error reading datasets folder:', err);
+            return res.status(500).json({ message: 'Error reading datasets folder', error: err.message });
+        }
+        res.status(200).json(files);
+    });
+});
 
 // Endpoint to search Data Sources by name or description
 router.get('/search', async (req, res) => {

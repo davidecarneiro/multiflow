@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faFolderPlus, faPause, faPlay, faDiagramProject, faPenToSquare, faTrash, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faFolderPlus, faDiagramProject, faPenToSquare, faTrash, faCopy } from '@fortawesome/free-solid-svg-icons';
 //import WebSocket from 'ws';
 
 

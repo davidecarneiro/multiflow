@@ -16,6 +16,35 @@ function AddStream() {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const projectId = queryParams.get('projectId');
+    const [files, setFiles] = useState([]);
+
+    // Function to get the Saved Data Sources
+    useEffect(() => {
+        // Fetch data sources from the server
+        const fetchDataSources = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/dataSources');
+                setDataSources(response.data);
+            } catch (error) {
+                console.error('Error fetching data sources:', error);
+            }
+        };
+
+        fetchDataSources();
+
+        // Getting the list of datasets in datasets folder
+        const fetchFiles = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/streams/datasets');
+                setFiles(response.data);
+            } catch (error) {
+                console.error('Error fetching files:', error);
+            }
+        };
+        if (dataSourceType === 'File') {
+            fetchFiles();
+        }
+    }, [dataSourceType]);
 
     const handleAdditionalFieldChange = (e) => {
         setAdditionalField(e.target.value);
@@ -68,21 +97,6 @@ function AddStream() {
         navigate(`/projects/${projectId}`);
     };
 
-    // Function to get the Saved Data Sources
-    useEffect(() => {
-        // Fetch data sources from the server
-        const fetchDataSources = async () => {
-            try {
-                const response = await axios.get('http://localhost:3001/dataSources');
-                setDataSources(response.data);
-            } catch (error) {
-                console.error('Error fetching data sources:', error);
-            }
-        };
-
-        fetchDataSources();
-    }, []);
-
     return (
         <div className="container">
             {/* Page header */}
@@ -127,7 +141,12 @@ function AddStream() {
                                 {dataSourceType === 'File' && (
                                     <div className="mb-3 col-3">
                                         <label htmlFor="filePath" className="form-label">File Path</label>
-                                        <input type="text" className="form-control" id="filePath" value={additionalField} onChange={handleAdditionalFieldChange} />
+                                        <select type="text" className="form-select" id="filePath" value={additionalField} onChange={handleAdditionalFieldChange}>
+                                            <option value="">Select a file</option>
+                                            {files.map((file) => (
+                                                <option key={file} value={`datasets/${file}`}>{file}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
                                 {dataSourceType === 'SavedDataSource' && (
