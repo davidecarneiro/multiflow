@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiagramProject, faClock, faFolderPlus, faPause, faPlay, faPenToSquare, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import ProgressBar from 'react-bootstrap/ProgressBar';
 
 function ProjectDetails() {
     const { id } = useParams();
@@ -18,7 +19,7 @@ function ProjectDetails() {
         fetchProjectDetails();
     }, [id]);
 
-    // Endpoint to get project details
+    /// Endpoint to get project details
     const fetchProjectDetails = async () => {
         try {
             const response = await axios.get(`http://localhost:3001/projects/${id}`);
@@ -29,7 +30,6 @@ function ProjectDetails() {
             setLoading(false);
         }
     };
-    fetchProjectDetails();
 
     // Function to start and stop project (using endpoints)
     const handleProjectStatus = async (projectId, status) => {
@@ -53,9 +53,12 @@ function ProjectDetails() {
                 ws.onmessage = (event) => {
                     console.log('Message received from server:', event.data);
                     const data = JSON.parse(event.data);
-                    setTotalPercentage(prev => prev + data.percentage);
-                    console.log('Message received from server:', data);
-                    //setStatus(event.data);
+                    setTotalPercentage(data.percentage); // Update the totalPercentage directly
+
+                    // Automatically pause the project when percentage reaches 100
+                    if (data.percentage === 100) {
+                        handleProjectStatus(projectId, true);
+                    }
                 };
 
                 ws.onclose = () => {
@@ -67,7 +70,7 @@ function ProjectDetails() {
                 };
             }
             // Refresh project list after updating status
-            fetchProjectDetails(id);
+            fetchProjectDetails();
         } catch (error) {
             console.error('Error updating project status:', error);
         }
@@ -183,6 +186,19 @@ function ProjectDetails() {
                 <h5 style={{ fontWeight: '650' }}>Description</h5>
                 <h6>{project.description ? project.description : "This project has no description."}</h6>
 
+                {/* Project status */}
+                <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
+                <div className='card mt-2 col-md-12' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                    <div className='card-body d-flex align-items-center'>
+                        <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
+                        <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
+                        {/* Progress bar for project completion */}
+                        <div className='ms-auto' style={{ width: '60%' }}>
+                            <ProgressBar now={totalPercentage} label={`${totalPercentage}%`} />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Streams list */}
                 <div className='col-12 mt-3'>
                     <div className='page-header mt-2 mb-2 d-flex justify-content-between align-items-center'>
@@ -227,15 +243,6 @@ function ProjectDetails() {
                                 ))}
                             </>
                         )}
-                    </div>
-                </div>
-
-                {/* Project status */}
-                <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
-                <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                    <div className='card-body d-flex align-items-center'>
-                        <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
-                        <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
                     </div>
                 </div>
 
