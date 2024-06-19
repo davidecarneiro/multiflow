@@ -1,8 +1,9 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSearch, faChevronDown, faChevronUp, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSearch, faChevronDown, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { ProgressBar } from 'react-bootstrap';
 
 function Projects() {
   const [projects, setProjects] = useState([]);
@@ -10,7 +11,7 @@ function Projects() {
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const [totalPercentage, setTotalPercentage] = useState(0);
+  const [projectPercentages, setProjectPercentages] = useState({});
 
   // Get all projects
   useEffect(() => {
@@ -105,20 +106,18 @@ function Projects() {
       if (status) {
         // Stop project
         await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
-
         console.log("--> Stop Project");
       } else {
         // Start project
         await axios.put(`http://localhost:3001/projects/start/${projectId}`);
-
         console.log("--> Play Project");
 
         const ws = new WebSocket('ws://localhost:8082');
 
         // Event listeners for WebSocket events
         ws.onopen = () => {
-            console.log('WebSocket connection established');
-            ws.send(projectId);
+          console.log('WebSocket connection established');
+          ws.send(projectId);
         };
 
         ws.onmessage = (event) => {
@@ -126,10 +125,18 @@ function Projects() {
 
           const data = JSON.parse(event.data);
 
-          setTotalPercentage(prev => prev + data.percentage);
-        
-          console.log('Message received from server:', data);
-          //setStatus(event.data);
+          // Ensure the progress bar updates with correct state management
+          setProjectPercentages((prev) => {
+            return {
+              ...prev,
+              [projectId]: data.percentage,
+            };
+          });
+
+          // Automatically pause the project when percentage reaches 100
+          if (data.percentage === 100) {
+            handleProjectStatus(projectId, true);
+          }
         };
 
         ws.onclose = () => {
@@ -140,6 +147,7 @@ function Projects() {
           console.error('WebSocket error:', error);
         };
       }
+
       // Refresh project list after updating status
       fetchProjects();
     } catch (error) {
@@ -185,7 +193,7 @@ function Projects() {
                     {/* Project Item List */}
                     <div className='list-group-item' style={{ backgroundColor: '#e6e8e6', borderColor: '#e6e8e6', borderRadius: '8px' }}>
                       <div className='row align-items-center'>
-                        <div className="col-md-9">
+                        <div className="col-md-6">
                           <div className="d-flex align-items-center">
                             <FontAwesomeIcon onClick={() => toggleProjectDescription(project._id)} style={{ cursor: 'pointer' }} icon={expandedProject === project._id ? faChevronDown : faChevronRight} className="me-2" />
                             <span
@@ -194,17 +202,22 @@ function Projects() {
                               style={{ cursor: 'pointer', textDecoration: 'none' }}
                               onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
                               onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
-                              {project.name} - 100%
+                              {project.name}
                             </span>
                             {/* Project details such as 'last started' and 'created at' */}
-                            <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {project.dateLastStarted ? parseDate(project.dateLastStarted) : 'Never'}</span></label>
-                            <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(project.dateCreated)}</label>
+                            <div className="d-flex align-items-center mt-1">
+                              <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {project.dateLastStarted ? parseDate(project.dateLastStarted) : 'Never'}</span></label>
+                              <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(project.dateCreated)}</label>
+                            </div>
                           </div>
                         </div>
-                        {/* Project status button */}
-                        <div className='col-md-3'>
-                          <div className='d-flex align-items-center justify-content-end'>
-                            <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                        {/* Progress bar and Project status button */}
+                        <div className='col-md-6'>
+                          <div className='d-flex align-items-center justify-content-center w-100'>
+                            <ProgressBar now={projectPercentages[project._id] || 0} label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`} style={{ width: '80%', height: '20px' }} />
+                            <div className='col-md-2 d-flex align-items-center justify-content-end'>
+                              <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -263,7 +276,7 @@ function Projects() {
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 }
 
