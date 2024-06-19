@@ -1,6 +1,6 @@
 # Ignora os diretorios node_modules do react-app e do node
-node/node_modules/
-react-app/node_modules/
+app/node/node_modules/
+app/react-app/node_modules/
 
 # Ignora arquivos gerados pelo Webpack
 webpack.config.js.map
