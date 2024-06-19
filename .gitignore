@@ -1,0 +1,79 @@
+# Ignora os diretorios node_modules do react-app e do node
+node/node_modules/
+react-app/node_modules/
+
+# Ignora arquivos gerados pelo Webpack
+webpack.config.js.map
+# Ignora arquivos de log
+*.log
+
+# Ignora arquivos temporários
+tmp/
+# Ignora arquivos de cache do IDE
+.idea/
+.vscode/
+
+# Ignora arquivos de ambiente especificos
+.env
+.env.development
+.env.production
+
+# Ignora arquivos de teste
+test/
+__tests__/
+
+# Ignora arquivos de cobertura de codigo
+coverage/
+
+# Ignora arquivos gerados pelo Docker
+docker-compose.yml
+
+# Ignora arquivos gerados pelo Gradle
+build/
+gradle/
+
+# Ignora arquivos gerados pelo Maven
+target/
+pom.xml
+
+# Ignora pastas de documentação
+docs/
+
+# Ignora pastas de logs
+logs/
+
+# Ignora pastas de cache
+cache/
+
+# Ignora pastas de uploads
+uploads/
+
+# Ignora pastas de imagens temporárias
+tmp/images
+
+# Ignora pastas de videos temporários
+tmp/videos
+
+# Ignora pastas de arquivos temporários
+tmp/files
+
+# Ignora qualquer arquivo que termine com ~
+*~
+
+# Ignora qualquer arquivo que termine com #
+##
+
+# Ignora qualquer arquivo que termine com .bak
+*.bak
+
+# Ignora qualquer arquivo que termine com .old
+*.old
+
+# Ignora qualquer pasta que comece com .
+.*/
+
+# Ignora qualquer pasta que comece com __
+.*/__
+
+# Ignora qualquer arquivo ou pasta que comece com PRIVATE
+PRIVATE*
