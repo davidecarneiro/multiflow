@@ -110,6 +110,7 @@ services:
     volumes:
       - ./app/node:/usr/src/app
       - ./datasets:/usr/src/app/datasets
+      - ./app/faust/code:/usr/src/app/code
     depends_on:
       - mongodb
 
