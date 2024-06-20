@@ -5,7 +5,9 @@ import AddProject from './components/AddProject';
 import ProjectDetails from './components/ProjectDetails';
 import EditProject from './components/EditProject';
 import Apps from './components/Apps';
+import AppDetails from './components/AppDetails';
 import AddApp from './components/AddApp';
+import EditApp from './components/EditApp';
 import Datasources from './components/Datasources';
 import DatasourcesDetails from './components/DatasourcesDetails';
 import AddDataSource from './components/AddDatasource';
@@ -39,7 +41,9 @@ function App() {
             <Route path='/streams/:id' element={<StreamDetails />} />
             {/* Apps */}
             <Route path="/apps" element={<Apps />} />
+            <Route path="/apps/:id" element={<AppDetails />} />
             <Route path="/add-app" element={<AddApp />} />
+            <Route path="/edit-app/:id" element={<EditApp />} />
             {/* Datasources */}
             <Route path="/dataSources" element={<Datasources />} />
             <Route path="/dataSources/:id" element={<DatasourcesDetails />} />
