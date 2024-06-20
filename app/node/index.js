@@ -35,7 +35,7 @@ app.use('/projects', projectsRoutes);
 app.use('/streams', streamsRoutes);
 app.use('/logs', logsRoutes);
 app.use('/dataSources', dataSourcesRoutes);
-app.use('/app', appRoutes);
+app.use('/apps', appRoutes);
 
 // Starting the server
 app.listen(PORT, () => {
