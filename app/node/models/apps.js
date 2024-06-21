@@ -1,30 +1,19 @@
 const mongoose = require('mongoose');
 
-const appsSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-    },
-    description: {
-        type: String,
-        required: false,
-    },
-    filePath: {
-        type: String,
-        required: false,
-    },
-    dateCreated: {
-        type: Date,
-        required: true,
-        default: Date.now
-    },
-    dateUpdated: {
-        type: Date,
-        required: false,
-        default: null
-    }
+const customFieldSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    type: { type: String, required: true },
+    value: { type: mongoose.Schema.Types.Mixed, required: true }
 });
 
-const Apps = mongoose.model('Apps', appsSchema);
+const appSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    description: String,
+    filePath: String,
+    dateCreated: { type: Date, default: Date.now },
+    dateUpdated: Date,
+    customFields: [customFieldSchema]
+});
 
-module.exports = Apps;
+const App = mongoose.model('App', appSchema);
+module.exports = App;

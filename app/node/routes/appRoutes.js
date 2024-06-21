@@ -107,7 +107,8 @@ router.post('/', async (req, res) => {
     const newApp = new Apps({
         name: req.body.name,
         description: req.body.description,
-        filePath: req.body.filePath
+        filePath: req.body.filePath,
+        customFields: req.body.customFields // Extract custom fields from request body
     });
 
     try {
@@ -132,7 +133,7 @@ router.put('/:id', async (req, res) => {
         console.log(`Updating App ${req.params.id}.`);
 
         // Extracting App information to update from the request body
-        const { name, description, filePath } = req.body;
+        const { name, description, filePath, customFields } = req.body;
 
         // Constructing the update object with allowed fields
         const updateObject = {};
@@ -144,6 +145,9 @@ router.put('/:id', async (req, res) => {
         }
         if (filePath) {
             updateObject.filePath = filePath;
+        }
+        if (customFields) {
+            updateObject.customFields = customFields; // Update custom fields if provided
         }
 
         // Setting the "dateUpdated" field to the current time

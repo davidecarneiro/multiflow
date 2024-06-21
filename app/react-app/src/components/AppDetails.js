@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFile, faClock, faFolderPlus, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { faCube, faClock, faFolderPlus, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 function AppDetails() {
     const { id } = useParams();
@@ -126,10 +125,10 @@ function AppDetails() {
             <div className='page-header mt-2'>
                 <h1 className='page-title'>{app.name}</h1>
             </div>
-            {/* Appp details such as id, 'type' and 'created at' */}
+            {/* App details such as id, 'type' and 'created at' */}
             <div className='d-flex justify-content-start'>
                 <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyAppId}>
-                    <FontAwesomeIcon icon={faFile} />
+                    <FontAwesomeIcon icon={faCube} />
                     <span className='ms-1' style={{ cursor: 'pointer' }}>Id: {app._id}</span>
                     {copied && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
                 </label>
@@ -151,6 +150,20 @@ function AppDetails() {
                         {app.filePath}
                     </div>
                 </div>
+
+                {/* Display custom fields */}
+                <h5 className='mt-3' style={{ fontWeight: '650' }}>Custom Fields</h5>
+                {app.customFields && app.customFields.length > 0 ? (
+                    app.customFields.map((field, index) => (
+                        <div key={index} className='d-flex justify-content-start align-items-center mt-2'>
+                            <span className='me-2'>Name: <label className='ms-2 me-2 ps-2 pe-2' style={{ backgroundColor: '#e6e8e6', borderRadius: '4px', cursor: 'default' }}> {field.name} </label></span>
+                            <span className='me-2'>Type: <label className='ms-2 me-2 ps-2 pe-2' style={{ backgroundColor: '#e6e8e6', borderRadius: '4px', cursor: 'default' }}>{field.type}</label></span>
+                            <span className='me-2'>Value: <label className='ms-2 me-2 ps-2 pe-2' style={{ backgroundColor: '#e6e8e6', borderRadius: '4px', cursor: 'default' }}>{field.value}</label></span>
+                        </div>
+                    ))
+                ) : (
+                    <div>This app has no custom fields.</div>
+                )}
 
                 {/* Action buttons */}
                 <div className="d-flex justify-content-end mt-3">

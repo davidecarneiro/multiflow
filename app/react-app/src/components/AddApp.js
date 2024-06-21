@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 function AddApp() {
     const navigate = useNavigate();
@@ -8,6 +10,7 @@ function AddApp() {
     const [description, setDescription] = useState('');
     const [filePath, setFilePath] = useState('');
     const [files, setFiles] = useState([]);
+    const [customFields, setCustomFields] = useState([{ name: '', type: '', value: '' }]);
 
     // Fetch the list of Python files when the component mounts
     useEffect(() => {
@@ -30,7 +33,8 @@ function AddApp() {
             const postData = {
                 name,
                 description,
-                filePath
+                filePath,
+                customFields
             };
 
             await axios.post('http://localhost:3001/apps', postData);
@@ -45,6 +49,26 @@ function AddApp() {
     // Handle cancel button click to navigate back to the apps page
     const handleCancel = () => {
         navigate('/apps');
+    };
+
+    // Handle adding a new custom field
+    const handleAddCustomField = () => {
+        setCustomFields([...customFields, { name: '', type: '', value: '' }]);
+    };
+
+    // Handle removing a custom field
+    const handleRemoveCustomField = (index) => {
+        const fields = [...customFields];
+        fields.splice(index, 1);
+        setCustomFields(fields);
+    };
+
+    // Handle custom field input changes
+    const handleCustomFieldChange = (index, event) => {
+        const { name, value } = event.target;
+        const fields = [...customFields];
+        fields[index][name] = value;
+        setCustomFields(fields);
     };
 
     return (
@@ -76,6 +100,55 @@ function AddApp() {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Custom Fields */}
+                            <div className="mb-3">
+                                <label className="form-label">Custom Fields</label>
+                                {customFields.map((field, index) => (
+                                    <div key={index} className="mb-3 row">
+                                        {/* Parameter name */}
+                                        <div className="col-3">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Name"
+                                                name="name"
+                                                value={field.name}
+                                                onChange={(e) => handleCustomFieldChange(index, e)} />
+                                        </div>
+                                        {/* Type of variable selection */}
+                                        <div className="col-3">
+                                            <select
+                                                className="form-select"
+                                                name="type"
+                                                value={field.type}
+                                                onChange={(e) => handleCustomFieldChange(index, e)}>
+                                                <option value="">Type</option>
+                                                <option value="str">String</option>
+                                                <option value="int">Integer</option>
+                                                <option value="float">Float</option>
+                                                <option value="complex">Complex</option>
+                                                <option value="bool">Boolean</option>
+                                            </select>
+                                        </div>
+                                        {/* Field value */}
+                                        <div className="col-3">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Value"
+                                                name="value"
+                                                value={field.value}
+                                                onChange={(e) => handleCustomFieldChange(index, e)} />
+                                        </div>
+                                        <div className="col-3 d-flex align-items-center">
+                                            <button type="button" className="btn btn-sm btn-danger" onClick={() => handleRemoveCustomField(index)}><FontAwesomeIcon icon={faMinus} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div><button type="button" className="btn btn-sm btn-primary" onClick={handleAddCustomField}><FontAwesomeIcon icon={faPlus} /> Add Custom Field</button></div>
+                            </div>
+
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>
