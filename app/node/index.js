@@ -4,6 +4,7 @@ const projectsRoutes = require('./routes/projectsRoutes');
 const streamsRoutes = require('./routes/streamsRoutes');
 const logsRoutes = require('./routes/logsRoutes');
 const appRoutes = require('./routes/appRoutes');
+const instancesRoutes = require('./routes/instancesRoutes');
 const dataSourcesRoutes = require('./routes/dataSourcesRoutes');
 const cors = require('cors');
 
@@ -36,6 +37,7 @@ app.use('/streams', streamsRoutes);
 app.use('/logs', logsRoutes);
 app.use('/dataSources', dataSourcesRoutes);
 app.use('/apps', appRoutes);
+app.use('/instances', instancesRoutes);
 
 // Starting the server
 app.listen(PORT, () => {

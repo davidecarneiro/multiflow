@@ -9,7 +9,7 @@ const path = require('path');
 const datasetsFolder = path.resolve(__dirname, '../datasets');
 console.log('Datasets folder path:', datasetsFolder);
 
-// Example usage in an endpoint
+// Endpoint to get the list of datasets
 router.get('/datasets', (req, res) => {
     fs.readdir(datasetsFolder, (err, files) => {
         if (err) {
