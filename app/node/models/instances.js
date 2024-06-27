@@ -9,7 +9,7 @@ const customFieldSchema = new mongoose.Schema({
 const instanceSchema = new mongoose.Schema({
     name: { type: String, required: true },
     description: String,
-    appId: { type: String },
+    appId: { type: String, required: true },
     dateCreated: { type: Date, default: Date.now },
     dateLastStarted: { type: Date },
     status: { type: Boolean, required: true, default: false },

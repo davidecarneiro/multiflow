@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
 // Endpoint to get an App by ID
 router.get('/:id', async (req, res) => {
     try {
-        // Logging: Indicating that we are fetching a app by its ID
+        // Logging: Indicating that we are fetching an app by its ID
         console.log(`Fetching App with ID ${req.params.id}.`);
 
         const app = await Apps.findById(req.params.id).populate('instances');
@@ -79,8 +79,7 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: "App not found" });
         }
 
-        const instances = await Instances.find({ appId: req.params.id });
-        res.status(200).json({ app, instances });
+        res.status(200).json(app);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }

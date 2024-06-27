@@ -1,83 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
 
-function UpdateApp() {
-    const { id } = useParams();
+function AddInstance() {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [filePath, setFilePath] = useState('');
-    const [files, setFiles] = useState([]);
-    const [customFields, setCustomFields] = useState([{ name: '', type: '' }]);
+    const [customFields, setCustomFields] = useState([]);
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const appId = queryParams.get('appId');
 
-    // Fetch app details and list of files when the component mounts
+    // Fetch the app details and custom fields when the component mounts
     useEffect(() => {
         const fetchAppDetails = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/apps/${id}`);
-                const { data: { name, description, filePath, customFields } } = response; // Destructure the response data
-
-                setName(name);
-                setDescription(description);
-                setFilePath(filePath);
-                setCustomFields(customFields || [{ name: '', type: '' }]);
+                const response = await axios.get(`http://localhost:3001/apps/${appId}`);
+                const app = response.data.app;
+                if (app) {
+                    const fields = app.customFields.map(field => ({
+                        name: field.name,
+                        type: field.type,
+                        value: ''
+                    }));
+                    setCustomFields(fields);
+                }
             } catch (error) {
                 console.error('Error fetching app details:', error);
             }
         };
 
-        const fetchFiles = async () => {
-            try {
-                const response = await axios.get('http://localhost:3001/apps/code');
-                setFiles(response.data);
-            } catch (error) {
-                console.error('Error fetching files:', error);
-            }
-        };
-
         fetchAppDetails();
-        fetchFiles();
-    }, [id]);
+    }, [appId]);
 
-    // Handle form submission to update an app
+    // Handle form submission to create a new instance
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const postData = {
-                name,
-                description,
-                filePath,
-                customFields
-            };
+            const postData = { appId, name, description, customFields };
 
-            await axios.put(`http://localhost:3001/apps/${id}`, postData);
+            await axios.post(`http://localhost:3001/instances`, postData);
 
-            // Redirect the user to the apps page after updating the app
-            navigate(`/apps/${id}`);
+            // Redirect the user to the instances page after adding the instance
+            navigate(`/apps/${appId}`);
         } catch (error) {
-            console.error('Error updating app:', error);
+            console.error('Error adding instance:', error);
         }
     };
 
-    // To cancel the app update
+    // Handle cancel button click to navigate back to the instances page
     const handleCancel = () => {
-        // Navigate back to the app details page
-        navigate(`/apps/${id}`);
-    };
-
-    // Handle adding a new custom field
-    const handleAddCustomField = () => {
-        setCustomFields([...customFields, { name: '', type: '' }]);
-    };
-
-    // Handle removing a custom field
-    const handleRemoveCustomField = (index) => {
-        const fields = [...customFields];
-        fields.splice(index, 1);
-        setCustomFields(fields);
+        navigate(`/apps/${appId}`);
     };
 
     // Handle custom field input changes
@@ -92,7 +68,7 @@ function UpdateApp() {
         <div className="container-fluid">
             {/* Page header */}
             <div className='page-header mt-2'>
-                <h1 className='page-title'>Edit App</h1>
+                <h1 className='page-title'>Add new instance</h1>
             </div>
 
             {/* Form */}
@@ -101,21 +77,12 @@ function UpdateApp() {
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
-                                <label htmlFor="name" className="form-label">App Name</label>
-                                <input type="text" className="form-control" id="name" placeholder='Enter the app name' value={name} onChange={(e) => setName(e.target.value)} required />
+                                <label htmlFor="name" className="form-label">Instance Name</label>
+                                <input type="text" className="form-control" id="name" placeholder='Enter the instance name' value={name} onChange={(e) => setName(e.target.value)} required />
                             </div>
                             <div className="mb-3">
-                                <label htmlFor="description" className="form-label">App Description</label>
+                                <label htmlFor="description" className="form-label">Instance Description</label>
                                 <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
-                            </div>
-                            <div className="mb-3 col-4">
-                                <label htmlFor="filePath" className="form-label">File Path</label>
-                                <select className="form-select" id="filePath" value={filePath} onChange={(e) => setFilePath(e.target.value)} required>
-                                    <option value="">Select a file</option>
-                                    {files.map((file) => (
-                                        <option key={file} value={file}>{file}</option>
-                                    ))}
-                                </select>
                             </div>
 
                             {/* Custom Fields */}
@@ -124,7 +91,7 @@ function UpdateApp() {
                                 {customFields.map((field, index) => (
                                     <div key={index} className="mb-3 row">
                                         {/* Parameter name */}
-                                        <div className="col-4">
+                                        <div className="col-3">
                                             <input
                                                 type="text"
                                                 className="form-control"
@@ -134,7 +101,7 @@ function UpdateApp() {
                                                 onChange={(e) => handleCustomFieldChange(index, e)} />
                                         </div>
                                         {/* Type of variable selection */}
-                                        <div className="col-4">
+                                        <div className="col-3">
                                             <select
                                                 className="form-select"
                                                 name="type"
@@ -148,17 +115,23 @@ function UpdateApp() {
                                                 <option value="bool">Boolean</option>
                                             </select>
                                         </div>
-                                        <div className="col-4 d-flex align-items-center">
-                                            <button type="button" className="btn btn-sm btn-danger" onClick={() => handleRemoveCustomField(index)}><FontAwesomeIcon icon={faMinus} /></button>
+                                        {/* Field value */}
+                                        <div className="col-3">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Value"
+                                                name="value"
+                                                value={field.value}
+                                                onChange={(e) => handleCustomFieldChange(index, e)} />
                                         </div>
                                     </div>
                                 ))}
-                                <div><button type="button" className="btn btn-sm btn-primary" onClick={handleAddCustomField}><FontAwesomeIcon icon={faPlus} /> Add Custom Field</button></div>
                             </div>
 
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Update</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>
                             </div>
                         </form>
                     </div>
@@ -168,4 +141,4 @@ function UpdateApp() {
     );
 }
 
-export default UpdateApp;
+export default AddInstance;

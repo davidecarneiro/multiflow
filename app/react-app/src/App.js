@@ -12,6 +12,7 @@ import Datasources from './components/Datasources';
 import DatasourcesDetails from './components/DatasourcesDetails';
 import AddDataSource from './components/AddDatasource';
 import EditDataSource from './components/EditDatasource';
+import AddInstance from './components/AddInstance';
 import Dashboards from './components/Dashboards';
 import Logs from './components/Logs';
 import './App.css';
@@ -44,6 +45,7 @@ function App() {
             <Route path="/apps/:id" element={<AppDetails />} />
             <Route path="/add-app" element={<AddApp />} />
             <Route path="/edit-app/:id" element={<EditApp />} />
+            <Route path="/add-instance" element={<AddInstance />} />
             {/* Datasources */}
             <Route path="/dataSources" element={<Datasources />} />
             <Route path="/dataSources/:id" element={<DatasourcesDetails />} />

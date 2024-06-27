@@ -16,7 +16,7 @@ function AppDetails() {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${id}`);
-                setApp(response.data.app); // Extract 'app' from the response data
+                setApp(response.data); // Extract 'app' from the response data
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching app details:', error);
@@ -182,13 +182,13 @@ function AppDetails() {
                                         <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                                             <div className='card-body d-flex justify-content-between align-items-center'>
                                                 <div className='col-10'>
-                                                    {/* Instance topic */}
+                                                    {/* Instance name */}
                                                     <span
                                                         onClick={() => navigate(`/instances/${instance._id}`)}
                                                         style={{ cursor: 'pointer', textDecoration: 'none' }}
                                                         onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
                                                         onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
-                                                        {instance.topic}
+                                                        {instance.name}
                                                     </span>
                                                     <div className='d-flex justify-content-start align-items-center mt-2'>
                                                         {/* Instance details such as 'last started' and 'created at' */}
