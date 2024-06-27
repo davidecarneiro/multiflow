@@ -1,11 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const Projects = require('../models/projects');
+const Streams = require('../models/streams');
 const Logs = require('../models/logs');
-//
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// Function to create a log entry
+const createLog = async (type, action, entityId, entityName) => {
+    const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''); // Format timestamp
+    const logContent = `[${timestamp}] [${type}] [${action}] ${entityName} (ID: ${entityId})`;
+    const newLog = new Logs({
+        type,
+        content: logContent
+    });
+    await newLog.save();
+};
 
 // Endpoint to search projects by name or description
 router.get('/search', async (req, res) => {
@@ -61,17 +72,6 @@ router.get('/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
-
-// Function to create a log entry
-const createLog = async (type, action, projectId, projectName) => {
-    const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''); // Format timestamp
-    const logContent = `[${timestamp}] [${type}] [${action}] Project '${projectName}' (ID: ${projectId})`;
-    const newLog = new Logs({
-        type,
-        content: logContent
-    });
-    await newLog.save();
-};
 
 // Endpoint to start a project by ID
 router.put('/start/:id', async (req, res) => {
@@ -214,10 +214,29 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ message: "Project not found" });
         }
 
+        // Fetch related streams
+        const streams = await Streams.find({ projectId: req.params.id });
+
+        // Delete each stream directly
+        for (const stream of streams) {
+            try {
+                const deletedStream = await Streams.findByIdAndDelete(stream._id);
+                if (!deletedStream) {
+                    console.error(`Stream with ID ${stream._id} not found`);
+                    continue;
+                }
+
+                await createLog("Stream", "Deleted", deletedStream._id, deletedStream.topic);
+            } catch (err) {
+                console.error(`Failed to delete stream with ID ${stream._id}: ${err.message}`);
+                await createLog("Error", `Failed to delete stream ${stream._id}`, req.params.id, deletedProject.name);
+            }
+        }
+
         // Create a log for the project deletion
         await createLog("Project", `Deleted`, deletedProject._id, deletedProject.name);
 
-        res.status(200).json({ message: "Project deleted successfully" });
+        res.status(200).json({ message: "Project and related streams deleted successfully" });
     } catch (err) {
         // Log the error
         await createLog("Error", err.message, req.params.id, "");
@@ -225,5 +244,29 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Endpoint to delete a stream by ID
+router.delete('/streams/:id', async (req, res) => {
+    try {
+        // Logging: Indicating that we are deleting a stream by its ID
+        console.log(`Deleting stream with ID ${req.params.id}.`);
+
+        // Find the stream by its ID and delete it
+        const deletedStream = await Streams.findByIdAndDelete(req.params.id);
+
+        // If stream is not found
+        if (!deletedStream) {
+            return res.status(404).json({ message: "Stream not found" });
+        }
+
+        // Create a log for the stream deletion
+        await createLog("Stream", `Deleted`, deletedStream._id, deletedStream.topic);
+
+        res.status(200).json({ message: "Stream deleted successfully" });
+    } catch (err) {
+        // Log the error
+        await createLog("Error", err.message, req.params.id, "");
+        res.status(400).json({ message: err.message });
+    }
+});
 
 module.exports = router;
