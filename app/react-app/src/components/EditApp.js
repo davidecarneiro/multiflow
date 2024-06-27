@@ -11,18 +11,22 @@ function UpdateApp() {
     const [description, setDescription] = useState('');
     const [filePath, setFilePath] = useState('');
     const [files, setFiles] = useState([]);
-    const [customFields, setCustomFields] = useState([{ name: '', type: '', value: '' }]);
+    const [customFields, setCustomFields] = useState([{ name: '', type: '' }]);
 
     // Fetch app details and list of files when the component mounts
     useEffect(() => {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${id}`);
-                const { name, description, filePath, customFields } = response.data;
+                const { app } = response.data;  // Extracting the 'app' object
+                const { name, description, filePath, customFields } = app;  // Destructuring the 'app' object
+
+                console.log('App details fetched:', app);  // Log the fetched data
+
                 setName(name);
                 setDescription(description);
                 setFilePath(filePath);
-                setCustomFields(customFields || [{ name: '', type: '', value: '' }]);
+                setCustomFields(customFields || [{ name: '', type: '' }]);
             } catch (error) {
                 console.error('Error fetching app details:', error);
             }
@@ -55,7 +59,7 @@ function UpdateApp() {
             await axios.put(`http://localhost:3001/apps/${id}`, postData);
 
             // Redirect the user to the apps page after updating the app
-            navigate('/apps');
+            navigate(`/apps/${id}`);
         } catch (error) {
             console.error('Error updating app:', error);
         }
@@ -69,7 +73,7 @@ function UpdateApp() {
 
     // Handle adding a new custom field
     const handleAddCustomField = () => {
-        setCustomFields([...customFields, { name: '', type: '', value: '' }]);
+        setCustomFields([...customFields, { name: '', type: '' }]);
     };
 
     // Handle removing a custom field
@@ -123,7 +127,7 @@ function UpdateApp() {
                                 {customFields.map((field, index) => (
                                     <div key={index} className="mb-3 row">
                                         {/* Parameter name */}
-                                        <div className="col-3">
+                                        <div className="col-4">
                                             <input
                                                 type="text"
                                                 className="form-control"
@@ -133,7 +137,7 @@ function UpdateApp() {
                                                 onChange={(e) => handleCustomFieldChange(index, e)} />
                                         </div>
                                         {/* Type of variable selection */}
-                                        <div className="col-3">
+                                        <div className="col-4">
                                             <select
                                                 className="form-select"
                                                 name="type"
@@ -147,17 +151,7 @@ function UpdateApp() {
                                                 <option value="bool">Boolean</option>
                                             </select>
                                         </div>
-                                        {/* Field value */}
-                                        <div className="col-3">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Value"
-                                                name="value"
-                                                value={field.value}
-                                                onChange={(e) => handleCustomFieldChange(index, e)} />
-                                        </div>
-                                        <div className="col-3 d-flex align-items-center">
+                                        <div className="col-4 d-flex align-items-center">
                                             <button type="button" className="btn btn-sm btn-danger" onClick={() => handleRemoveCustomField(index)}><FontAwesomeIcon icon={faMinus} /></button>
                                         </div>
                                     </div>

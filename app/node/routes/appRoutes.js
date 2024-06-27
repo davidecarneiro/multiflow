@@ -133,6 +133,14 @@ router.put('/:id', async (req, res) => {
         // Extracting app information to update from the request body
         const { name, description, filePath, customFields } = req.body;
 
+        // Logging the request body for debugging
+        console.log('Request body:', req.body);
+
+        // Validate the incoming data
+        if (!name && !description && !filePath && !customFields) {
+            return res.status(400).json({ message: "No valid fields to update" });
+        }
+
         // Constructing the update object with allowed fields
         const updateObject = {};
         if (name) updateObject.name = name;
@@ -154,7 +162,12 @@ router.put('/:id', async (req, res) => {
 
         res.status(200).json(updatedApp);
     } catch (err) {
+        // Logging the error for debugging
+        console.error('Error updating app:', err);
+
+        // Create a log for the error
         await createLog("Error", err.message, req.params.id, "");
+
         res.status(400).json({ message: err.message });
     }
 });
