@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 function AddInstance() {
     const navigate = useNavigate();
@@ -19,14 +17,15 @@ function AddInstance() {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${appId}`);
-                const app = response.data.app;
-                if (app) {
-                    const fields = app.customFields.map(field => ({
+                const app = response.data;
+                if (app && app.customFields) {
+                    // Initialize customFields state with default values
+                    const initialCustomFields = app.customFields.map(field => ({
                         name: field.name,
                         type: field.type,
                         value: ''
                     }));
-                    setCustomFields(fields);
+                    setCustomFields(initialCustomFields);
                 }
             } catch (error) {
                 console.error('Error fetching app details:', error);
@@ -40,7 +39,7 @@ function AddInstance() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const postData = { appId, name, description, customFields };
+            let postData = { appId, name, description, customFields };
 
             await axios.post(`http://localhost:3001/instances`, postData);
 
@@ -53,15 +52,89 @@ function AddInstance() {
 
     // Handle cancel button click to navigate back to the instances page
     const handleCancel = () => {
+        // Navigate back to the app details page
         navigate(`/apps/${appId}`);
     };
 
-    // Handle custom field input changes
-    const handleCustomFieldChange = (index, event) => {
-        const { name, value } = event.target;
+    // Handle custom field value change with type validation
+    const handleCustomFieldValueChange = (index, event) => {
+        const { value } = event.target;
         const fields = [...customFields];
-        fields[index][name] = value;
+        const fieldType = fields[index].type;
+
+        // Validate input based on field type
+        switch (fieldType) {
+            case 'int':
+                if (/^-?\d+$/.test(value)) { // Regex for integer
+                    fields[index].value = parseInt(value, 10);
+                }
+                break;
+            case 'float':
+                if (/^-?\d*\.?\d+$/.test(value)) { // Regex for float
+                    fields[index].value = parseFloat(value);
+                }
+                break;
+            case 'bool':
+                const lowerCaseValue = value.toLowerCase();
+                fields[index].value = lowerCaseValue === 'true' || lowerCaseValue === '1';
+                break;
+            default:
+                fields[index].value = value;
+                break;
+        }
+
         setCustomFields(fields);
+    };
+
+    // Render input based on field type
+    const renderInputField = (field, index) => {
+        switch (field.type) {
+            case 'int':
+                return (
+                    <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Value"
+                        value={field.value}
+                        onChange={(e) => handleCustomFieldValueChange(index, e)}
+                        min={Number.MIN_SAFE_INTEGER}
+                        max={Number.MAX_SAFE_INTEGER}
+                        step="1"
+                    />
+                );
+            case 'float':
+                return (
+                    <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Value"
+                        value={field.value}
+                        onChange={(e) => handleCustomFieldValueChange(index, e)}
+                        step="any"
+                    />
+                );
+            case 'bool':
+                return (
+                    <select
+                        className="form-select"
+                        value={field.value ? 'true' : 'false'}
+                        onChange={(e) => handleCustomFieldValueChange(index, e)}
+                    >
+                        <option value="true">True</option>
+                        <option value="false">False</option>
+                    </select>
+                );
+            default:
+                return (
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Value"
+                        value={field.value}
+                        onChange={(e) => handleCustomFieldValueChange(index, e)}
+                    />
+                );
+        }
     };
 
     return (
@@ -98,7 +171,8 @@ function AddInstance() {
                                                 placeholder="Name"
                                                 name="name"
                                                 value={field.name}
-                                                onChange={(e) => handleCustomFieldChange(index, e)} />
+                                                readOnly // Make the name field read-only
+                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }} />
                                         </div>
                                         {/* Type of variable selection */}
                                         <div className="col-3">
@@ -106,7 +180,8 @@ function AddInstance() {
                                                 className="form-select"
                                                 name="type"
                                                 value={field.type}
-                                                onChange={(e) => handleCustomFieldChange(index, e)}>
+                                                disabled // Disable type selection
+                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }} >
                                                 <option value="">Type</option>
                                                 <option value="str">String</option>
                                                 <option value="int">Integer</option>
@@ -117,13 +192,7 @@ function AddInstance() {
                                         </div>
                                         {/* Field value */}
                                         <div className="col-3">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Value"
-                                                name="value"
-                                                value={field.value}
-                                                onChange={(e) => handleCustomFieldChange(index, e)} />
+                                            {renderInputField(field, index)}
                                         </div>
                                     </div>
                                 ))}
