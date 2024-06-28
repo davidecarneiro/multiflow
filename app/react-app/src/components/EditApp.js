@@ -18,7 +18,7 @@ function UpdateApp() {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${id}`);
-                const { data: { name, description, filePath, customFields } } = response; // Destructure the response data
+                const { data: { name, description, filePath, customFields } } = response;
 
                 setName(name);
                 setDescription(description);

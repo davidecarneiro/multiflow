@@ -150,16 +150,40 @@ function AppDetails() {
                 {/* Display custom fields */}
                 <h5 className='mt-3' style={{ fontWeight: '650' }}>Custom Fields</h5>
                 {app.customFields && app.customFields.length > 0 ? (
-                    app.customFields.map((field, index) => (
-                        <div key={index} className='d-flex justify-content-start align-items-center mt-2'>
-                            <span className='me-2'>Name:</span>
-                            <label className='ms-2 me-2 ps-2 pe-2' style={{ backgroundColor: '#e6e8e6', borderRadius: '4px', cursor: 'default' }}> {field.name} </label>
-                            <span className='me-2'>Type:</span>
-                            <label className='ms-2 me-2 ps-2 pe-2' style={{ backgroundColor: '#e6e8e6', borderRadius: '4px', cursor: 'default' }}>{field.type}</label>
-                        </div>
-                    ))
+                    <div className='row'>
+                        {app.customFields.map((field, index) => {
+                            const truncate = (str, length) => {
+                                if (str.length <= length) return str;
+                                return str.slice(0, length) + '...';
+                            };
+
+                            // To limit the ammount of letters displayed
+                            const truncatedName = truncate(field.name, 17);
+
+                            return (
+                                <div key={index} className={`col-md-${Math.ceil(12 / Math.min(app.customFields.length, 5))} mb-3`}>
+                                    <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                                        <div className='card-body'>
+                                            <div className='d-flex flex-column'>
+                                                <div className='d-flex justify-content-between align-items-center'>
+                                                    <div className='d-flex flex-column'>
+                                                        <span><strong>Name:</strong> {truncatedName}</span>
+                                                        <span><strong>Type:</strong> {field.type} </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {/* Fill remaining spaces in the row */}
+                        {Array.from({ length: 5 - (app.customFields.length % 5) }, (_, i) => (
+                            <div key={i} className={`col-md-${Math.ceil(12 / Math.min(app.customFields.length, 5))} mb-3`} />
+                        ))}
+                    </div>
                 ) : (
-                    <div>This app has no custom fields.</div>
+                    <p className='text-muted'>This app has no custom fields.</p>
                 )}
 
                 {/* Instances list */}

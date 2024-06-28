@@ -1,90 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-function AddInstance() {
+function EditInstance() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const [app, setApp] = useState(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [customFields, setCustomFields] = useState([]);
-    const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const appId = queryParams.get('appId');
+    const [instanceCustomFields, setInstanceCustomFields] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [appId, setAppId] = useState('');
 
-    // Fetch the app details and custom fields when the component mounts
+    // Fetch instance details when the component mounts
+    useEffect(() => {
+        const fetchInstanceDetails = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3001/instances/${id}`);
+                const instanceData = response.data;
+                setName(instanceData.name);
+                setAppId(instanceData.appId);
+                setDescription(instanceData.description);
+                setInstanceCustomFields(instanceData.customFields.map(field => ({
+                    ...field,
+                    value: field.value || ''
+                })));
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching instance details:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchInstanceDetails();
+    }, [id]);
+
+    // Fetch app details when instance is fetched
     useEffect(() => {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${appId}`);
-                const app = response.data;
-                setCustomFields(app.customFields);
+                setApp(response.data);
             } catch (error) {
                 console.error('Error fetching app details:', error);
             }
         };
 
-        fetchAppDetails();
+        if (appId) {
+            fetchAppDetails();
+        }
     }, [appId]);
 
-    // Handle form submission to create a new instance
+    // Handle form submission to update the instance
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const postData = {
-                appId,
                 name,
                 description,
-                customFields: customFields.map(field => ({
-                    customFieldId: field._id,
-                    value: field.value
-                }))
+                customFields: instanceCustomFields
             };
 
-            const response = await axios.post(`http://localhost:3001/instances`, postData);
+            await axios.put(`http://localhost:3001/instances/${id}`, postData);
 
-            console.log('Instance added successfully:', response.data); // Debug: Log success message
-
-            // Redirect the user to the instances page after adding the instance
-            navigate(`/apps/${appId}`);
+            // Redirect the user to the instance details page after updating
+            navigate(`/instances/${id}`);
         } catch (error) {
-            console.error('Error adding instance:', error);
+            console.error('Error updating instance:', error);
         }
     };
 
-    // Handle cancel button click to navigate back to the app details page
+    // Handle cancel button click to navigate back to the instance details page
     const handleCancel = () => {
-        // Navigate back to the app details page
-        navigate(`/apps/${appId}`);
+        // Navigate back to the instance details page
+        navigate(`/instances/${id}`);
     };
 
     // Handle custom field value change with type validation
     const handleCustomFieldValueChange = (index, event) => {
         const { value } = event.target;
-        const fields = [...customFields];
-        const fieldType = fields[index].type;
-
-        // Validate input based on field type
-        switch (fieldType) {
-            case 'int':
-                if (/^-?\d+$/.test(value)) { // Regex for integer
-                    fields[index].value = parseInt(value, 10);
-                }
-                break;
-            case 'float':
-                if (/^-?\d*\.?\d+$/.test(value)) { // Regex for float
-                    fields[index].value = parseFloat(value);
-                }
-                break;
-            case 'bool':
-                const lowerCaseValue = value.toLowerCase();
-                fields[index].value = lowerCaseValue === 'true' || lowerCaseValue === '1';
-                break;
-            default:
-                fields[index].value = value;
-                break;
-        }
-
-        setCustomFields(fields);
+        const fields = [...instanceCustomFields];
+        fields[index].value = value;
+        setInstanceCustomFields(fields);
     };
 
     // Render input based on field type
@@ -138,11 +135,15 @@ function AddInstance() {
         }
     };
 
+    if (loading) {
+        return <div className="container"><h4>Loading instance details...</h4></div>;
+    }
+
     return (
         <div className="container-fluid">
             {/* Page header */}
             <div className='page-header mt-2'>
-                <h1 className='page-title'>Add new instance</h1>
+                <h1 className='page-title'>Edit Instance</h1>
             </div>
 
             {/* Form */}
@@ -162,7 +163,7 @@ function AddInstance() {
                             {/* Custom Fields */}
                             <div className="mb-3">
                                 <label className="form-label">Custom Fields</label>
-                                {customFields.map((field, index) => (
+                                {app && app.customFields && app.customFields.map((field, index) => (
                                     <div key={index} className="mb-3 row">
                                         {/* Parameter name */}
                                         <div className="col-3">
@@ -172,9 +173,8 @@ function AddInstance() {
                                                 placeholder="Name"
                                                 name={`name-${index}`}
                                                 value={field.name}
-                                                readOnly // Make the name field read-only
-                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }}
-                                            />
+                                                readOnly
+                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }} />
                                         </div>
                                         {/* Type of variable selection */}
                                         <div className="col-3">
@@ -182,9 +182,8 @@ function AddInstance() {
                                                 className="form-select"
                                                 name={`type-${index}`}
                                                 value={field.type}
-                                                disabled // Disable type selection
-                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }}
-                                            >
+                                                disabled
+                                                style={{ backgroundColor: '#F5F6F5', border: 'none' }}>
                                                 <option value="">Type</option>
                                                 <option value="str">String</option>
                                                 <option value="int">Integer</option>
@@ -195,21 +194,20 @@ function AddInstance() {
                                         </div>
                                         {/* Field value */}
                                         <div className="col-3">
-                                            {renderInputField(field, index)}
+                                            {renderInputField(instanceCustomFields[index], index)}
                                         </div>
                                         {/* Hidden input for customFieldId */}
                                         <input
                                             type="hidden"
                                             name={`customFieldId-${index}`}
-                                            value={field.customFieldId}
-                                        />
+                                            value={field.customFieldId} />
                                     </div>
                                 ))}
                             </div>
 
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Update</button>
                             </div>
                         </form>
                     </div>
@@ -219,4 +217,4 @@ function AddInstance() {
     );
 }
 
-export default AddInstance;
+export default EditInstance;

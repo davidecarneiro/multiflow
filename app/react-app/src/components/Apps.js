@@ -183,9 +183,9 @@ function Apps() {
                                             <div className='row d-flex justify-content-end'>
                                                 <div className='col-11'>
                                                     {/* Conditional rendering based on whether the app has instances */}
-                                                    {apps.find(proj => proj._id === app._id)?.instances.length > 0 ? (
+                                                    {apps.find(currentApp => currentApp._id === app._id)?.instances.length > 0 ? (
                                                         // Render instances if there are any associated
-                                                        apps.find(proj => proj._id === app._id).instances.map((instance, index) => (
+                                                        apps.find(currentApp => currentApp._id === app._id).instances.map((instance, index) => (
                                                             <li key={index} className="list-group-item mt-1 mb-1" style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                                                                 {/* Instance details */}
                                                                 <div className="d-flex align-items-center">
