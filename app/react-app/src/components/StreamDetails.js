@@ -6,7 +6,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faFolderPlus, faDiagramProject, faPenToSquare, faTrash, faCopy } from '@fortawesome/free-solid-svg-icons';
 //import WebSocket from 'ws';
 
-
 function StreamDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -339,8 +338,12 @@ function StreamDetails() {
                         <h5 style={{ fontWeight: '650' }}>Project Associated</h5>
                         <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                             <div className='card-body'>
-
-                                <div>{project.name}</div>
+                                <div onClick={() => navigate(`/projects/${stream.projectId}`)}
+                                    style={{ cursor: 'pointer', textDecoration: 'none' }}
+                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                                    {project.name}
+                                </div>
                                 <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyProjectId}>
                                     <FontAwesomeIcon icon={faDiagramProject} />
                                     <span className='ms-1' style={{ cursor: 'pointer' }}>Project Id: {project._id}</span>

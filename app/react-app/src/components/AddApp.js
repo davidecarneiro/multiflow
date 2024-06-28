@@ -10,7 +10,7 @@ function AddApp() {
     const [description, setDescription] = useState('');
     const [filePath, setFilePath] = useState('');
     const [files, setFiles] = useState([]);
-    const [customFields, setCustomFields] = useState([{ name: '', type: '', value: '' }]);
+    const [customFields, setCustomFields] = useState([{ name: '', type: '' }]);
 
     // Fetch the list of Python files when the component mounts
     useEffect(() => {
@@ -53,7 +53,7 @@ function AddApp() {
 
     // Handle adding a new custom field
     const handleAddCustomField = () => {
-        setCustomFields([...customFields, { name: '', type: '', value: '' }]);
+        setCustomFields([...customFields, { name: '', type: '' }]);
     };
 
     // Handle removing a custom field
@@ -80,7 +80,7 @@ function AddApp() {
 
             {/* Form */}
             <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
-                <div className='container ps-4 pe-4 pt-3 pb-4'>
+                <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
@@ -107,7 +107,7 @@ function AddApp() {
                                 {customFields.map((field, index) => (
                                     <div key={index} className="mb-3 row">
                                         {/* Parameter name */}
-                                        <div className="col-3">
+                                        <div className="col-5">
                                             <input
                                                 type="text"
                                                 className="form-control"
@@ -117,7 +117,7 @@ function AddApp() {
                                                 onChange={(e) => handleCustomFieldChange(index, e)} />
                                         </div>
                                         {/* Type of variable selection */}
-                                        <div className="col-3">
+                                        <div className="col-5">
                                             <select
                                                 className="form-select"
                                                 name="type"
@@ -131,17 +131,7 @@ function AddApp() {
                                                 <option value="bool">Boolean</option>
                                             </select>
                                         </div>
-                                        {/* Field value */}
-                                        <div className="col-3">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder="Value"
-                                                name="value"
-                                                value={field.value}
-                                                onChange={(e) => handleCustomFieldChange(index, e)} />
-                                        </div>
-                                        <div className="col-3 d-flex align-items-center">
+                                        <div className="col-2 d-flex align-items-center">
                                             <button type="button" className="btn btn-sm btn-danger" onClick={() => handleRemoveCustomField(index)}><FontAwesomeIcon icon={faMinus} /></button>
                                         </div>
                                     </div>
