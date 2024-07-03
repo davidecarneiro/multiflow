@@ -77,3 +77,7 @@ tmp/files
 
 # Ignora qualquer arquivo ou pasta que comece com PRIVATE
 PRIVATE*
+
+# Adicionados manualmente
+app/react-app/node_modules/.cache/
+grafana/data/grafana.db
