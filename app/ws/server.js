@@ -1,5 +1,3 @@
-
-
 const http = require('http');
 const WebSocket = require('ws');
 const mongoose = require('mongoose');
@@ -35,101 +33,96 @@ function readCSV(filePath) {
   });
 }
 
-async function sendMessagesToKafkaTopic(topic, messages, ws) {
-    // Iterar sobre cada mensagem no array de mensagens
-    for (const message of messages) {
-      console.log("message.filePath: ", message.filePath);
-      try {
-        const lines = await readCSV(message.filePath); // Função para ler o arquivo CSV
-        const totalLines = lines.length; // Total de linhas no arquivo CSV
-        let linesSent = 0; // Inicialize o contador de linhas enviadas
-  
-        // Enviar o número de linhas para o cliente WebSocket
-        const numberOfLinesMessage = { numberOfLines: totalLines };
-        ws.send(JSON.stringify(numberOfLinesMessage));
-  
-        // Envio de mensagens com intervalo de tempo fixo (allInSeconds)
-        if (message.allInSeconds) {
-          console.log("message.allInSeconds: ", message.allInSeconds);
-          const totalSeconds = parseFloat(message.allInSeconds);
-            for (const row of lines) {
-              const data = { csv_data: row.trim() };
-              const json_data = JSON.stringify(data);
-              producer.send([{ topic: message.topic, messages: json_data }], (error) => {
-                if (error) {
-                  console.error('Error sending message to Kafka:', error);
-                }
-              });
-              linesSent++; // Incrementa o contador de linhas enviadas
-              const percentage = (linesSent / totalLines) * 100; // Calcula a percentagem
-              //ws.send(JSON.stringify({ percentage: percentage.toFixed(2) })); // Envia a percentagem para o cliente WebSocket
-              //ws.send(percentage.toFixed(2)); // Envia a percentagem para o cliente WebSocket
-              const dataToSend = {
-                percentage,
-                streamId: message._id
-              };
-              ws.send(JSON.stringify(dataToSend));
+async function sendMessagesToKafkaTopic(topic, messages, ws, progressData) {
+  let totalGlobalLines = 0;
+  let globalLinesSent = 0;
 
+  for (const message of messages) {
+    console.log("message.filePath: ", message.filePath);
+    try {
+      const lines = await readCSV(message.filePath); // Função para ler o arquivo CSV
+      const totalLines = lines.length; // Total de linhas no arquivo CSV
+      totalGlobalLines += totalLines;
+      let linesSent = 0; // Inicialize o contador de linhas enviadas
+
+      // Enviar o número de linhas para o cliente WebSocket
+      const numberOfLinesMessage = { numberOfLines: totalLines };
+      ws.send(JSON.stringify(numberOfLinesMessage));
+
+      const updateProgress = () => {
+        const percentage = (linesSent / totalLines) * 100; // Calcula a percentagem
+        progressData[message._id] = {
+          percentage: percentage.toFixed(2),
+          streamId: message._id
+        };
+
+        globalLinesSent = Object.values(progressData).reduce((sum, stream) => sum + (stream.percentage / 100) * totalLines, 0);
+        const globalPercentage = (globalLinesSent / totalGlobalLines) * 100;
+
+        const aggregatedProgress = {
+          streams: Object.values(progressData)/*,
+          globalPercentage: globalPercentage.toFixed(2)*/
+        };
+
+        ws.send(JSON.stringify(aggregatedProgress)); // Envia o progresso agregado
+      };
+
+      if (message.allInSeconds) {
+        console.log("message.allInSeconds: ", message.allInSeconds);
+        const totalSeconds = parseFloat(message.allInSeconds);
+        const interval = (totalSeconds * 1000) / totalLines; // Intervalo para enviar todas as linhas em totalSeconds
+        for (const row of lines) {
+          const data = { csv_data: row.trim() };
+          const json_data = JSON.stringify(data);
+          producer.send([{ topic: message.topic, messages: json_data }], (error) => {
+            if (error) {
+              console.error('Error sending message to Kafka:', error);
             }
-            await new Promise(resolve => setTimeout(resolve, totalSeconds * 1000));
+          });
+          linesSent++; // Incrementa o contador de linhas enviadas
+          updateProgress();
+          await new Promise(resolve => setTimeout(resolve, interval));
         }
-  
-        // Envio de mensagens com taxa de linhas por segundo (linesPerSecond)
-        else if (message.linesPerSecond) {
-          console.log("message.linesPerSecond: ", message.linesPerSecond);
-          const linesPerSecond = parseInt(message.linesPerSecond);
-          const interval = 1000 / linesPerSecond;
-            for (const row of lines) {
-              const data = { csv_data: row.trim() };
-              const json_data = JSON.stringify(data);
-              producer.send([{ topic: message.topic, messages: json_data }], (error) => {
-                if (error) {
-                  console.error('Error sending message to Kafka:', error);
-                }
-              });
-              linesSent++; // Incrementa o contador de linhas enviadas
-              const percentage = (linesSent / totalLines) * 100; // Calcula a percentagem
-              //ws.send(JSON.stringify({ percentage: percentage.toFixed(2) })); // Envia a percentagem para o cliente WebSocket
-              //ws.send(percentage.toFixed(2)); // Envia a percentagem para o cliente WebSocket
-              const dataToSend = {
-                percentage,
-                streamId: message._id
-              };
-              ws.send(JSON.stringify(dataToSend));
-
+      } else if (message.linesPerSecond) {
+        console.log("message.linesPerSecond: ", message.linesPerSecond);
+        const linesPerSecond = parseInt(message.linesPerSecond);
+        const interval = 1000 / linesPerSecond; // Calcula o intervalo em milissegundos
+        
+        for (const row of lines) {
+          const data = { csv_data: row.trim() };
+          const json_data = JSON.stringify(data);
+          console.log(json_data);
+          producer.send([{ topic: message.topic, messages: json_data }], (error) => {
+            if (error) {
+              console.error('Error sending message to Kafka:', error);
             }
-            await new Promise(resolve => setTimeout(resolve, interval));
-          }
-  
-        // Envio das mensagens em tempo real (realTime)
-        else if (message.realTime) {
-          console.log("message.realTime: ", message.realTime);
-            for (const row of lines) {
-              const data = { csv_data: row.trim() };
-              const json_data = JSON.stringify(data);
-              producer.send([{ topic: message.topic, messages: json_data }], (error) => {
-                if (error) {
-                  console.error('Error sending message to Kafka:', error);
-                }
-              });
-              linesSent++; // Incrementa o contador de linhas enviadas
-              const percentage = (linesSent / totalLines) * 100; // Calcula a percentagem
-              //ws.send(JSON.stringify({ percentage: percentage.toFixed(2) })); // Envia a parcentagem para o cliente WebSocket
-              //ws.send(percentage.toFixed(2)); // Envia a percentagem para o cliente WebSocket
-              const dataToSend = {
-                percentage,
-                streamId: message._id
-              };
-              ws.send(JSON.stringify(dataToSend));
-
-            }
+          });
+        
+          linesSent++; // Incrementa o contador de linhas enviadas
+          updateProgress();
+        
+          // Aguarda pelo intervalo antes de enviar a próxima linha
+          await new Promise(resolve => setTimeout(resolve, interval));
         }
-      } catch (error) {
-        console.error('Erro ao processar arquivo CSV:', error);
+      } else if (message.realTime) {
+        console.log("message.realTime: ", message.realTime);
+        for (const row of lines) {
+          const data = { csv_data: row.trim() };
+          const json_data = JSON.stringify(data);
+          producer.send([{ topic: message.topic, messages: json_data }], (error) => {
+            if (error) {
+              console.error('Error sending message to Kafka:', error);
+            }
+          });
+          linesSent++; // Incrementa o contador de linhas enviadas
+          updateProgress();
+        }
       }
+    } catch (error) {
+      console.error('Erro ao processar arquivo CSV:', error);
     }
+  }
 }
-
 
 const url = 'mongodb://mongodb_server:27017/Multiflow';
 
@@ -174,13 +167,15 @@ wss.on('connection', (ws) => {
         return;
       }
 
+      // Objeto para acumular o progresso das streams
+      const progressData = {};
+
       for (const stream of streams) {
         console.log("stream: ", stream);
         if (stream) {
-          //ws.send('Stream processada com sucesso');
-          sendMessagesToKafkaTopic('nome_do_topico_no_kafka', [stream], ws);
+          sendMessagesToKafkaTopic('nome_do_topico_no_kafka', [stream], ws, progressData);
         } else {
-          //ws.send('Erro ao processar a stream');
+          ws.send('Erro ao processar a stream');
         }
       }
     } catch (error) {
@@ -199,4 +194,3 @@ const PORT = process.env.PORT || 8082;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
