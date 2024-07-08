@@ -12,7 +12,8 @@ function ProjectDetails() {
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
-    const [totalPercentage, setTotalPercentage] = useState(0);
+    const [projectPercentages, setProjectPercentages] = useState({});
+
 
     // Get project details
     useEffect(() => {
@@ -42,31 +43,50 @@ function ProjectDetails() {
                 // Start project
                 await axios.put(`http://localhost:3001/projects/start/${projectId}`);
                 console.log("--> Play Project");
+              
                 const ws = new WebSocket('ws://localhost:8082');
 
                 // Event listeners for WebSocket events
                 ws.onopen = () => {
-                    console.log('WebSocket connection established');
-                    ws.send(projectId);
+                  console.log('WebSocket connection established');
+                  ws.send(projectId);
                 };
-
+        
                 ws.onmessage = (event) => {
-                    console.log('Message received from server:', event.data);
-                    const data = JSON.parse(event.data);
-                    setTotalPercentage(data.percentage); // Update the totalPercentage directly
-
+                  console.log('Message received from server:', event.data);
+                
+                  const data = JSON.parse(event.data);
+                
+                  // Verifica se 'streams' está definido e é um array
+                  if (Array.isArray(data.streams) && data.streams.length > 0) {
+                    // Calcula o valor mínimo de 'percentage' na lista de streams
+                    const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
+                    console.log('Minimum percentage:', minPercentage);
+        
+                    setProjectPercentages((prev) => ({
+                      ...prev,
+                      [projectId]: parseFloat(minPercentage),
+                    }));
+                  
                     // Automatically pause the project when percentage reaches 100
-                    if (data.percentage === 100) {
-                        handleProjectStatus(projectId, true);
+                    if (minPercentage === 100) {
+                      handleProjectStatus(projectId, true);
                     }
+        
+                    
+                  } else {
+                    console.log('No streams available');
+                  }
+                
                 };
-
+                
+        
                 ws.onclose = () => {
-                    console.log('WebSocket connection closed');
+                  console.log('WebSocket connection closed');
                 };
-
+        
                 ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
+                  console.error('WebSocket error:', error);
                 };
             }
             // Refresh project list after updating status
@@ -194,7 +214,11 @@ function ProjectDetails() {
                         <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
                         {/* Progress bar for project completion */}
                         <div className='ms-auto' style={{ width: '60%' }}>
-                            <ProgressBar now={totalPercentage} label={`${totalPercentage}%`} />
+                            <ProgressBar
+                            now={projectPercentages[project._id] || 0}
+                            label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                            style={{ width: '100%', height: '20px' }}
+                          />   
                         </div>
                     </div>
                 </div>

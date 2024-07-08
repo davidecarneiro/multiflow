@@ -122,22 +122,32 @@ function Projects() {
 
         ws.onmessage = (event) => {
           console.log('Message received from server:', event.data);
-
+        
           const data = JSON.parse(event.data);
+        
+          // Verifica se 'streams' está definido e é um array
+          if (Array.isArray(data.streams) && data.streams.length > 0) {
+            // Calcula o valor mínimo de 'percentage' na lista de streams
+            const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
+            console.log('Minimum percentage:', minPercentage);
 
-          // Ensure the progress bar updates with correct state management
-          setProjectPercentages((prev) => {
-            return {
+            setProjectPercentages((prev) => ({
               ...prev,
-              [projectId]: data.percentage,
-            };
-          });
+              [projectId]: parseFloat(minPercentage),
+            }));
+          
+            // Automatically pause the project when percentage reaches 100
+            if (minPercentage === 100) {
+              handleProjectStatus(projectId, true);
+            }
 
-          // Automatically pause the project when percentage reaches 100
-          if (data.percentage === 100) {
-            handleProjectStatus(projectId, true);
+            
+          } else {
+            console.log('No streams available');
           }
+        
         };
+        
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
@@ -214,8 +224,12 @@ function Projects() {
                         {/* Progress bar and Project status button */}
                         <div className='col-md-6'>
                           <div className='d-flex align-items-center justify-content-center w-100'>
-                            <ProgressBar now={projectPercentages[project._id] || 0} label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`} style={{ width: '80%', height: '20px' }} />
-                            <div className='col-md-2 d-flex align-items-center justify-content-end'>
+                          <ProgressBar
+                            now={projectPercentages[project._id] || 0}
+                            label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                            style={{ width: '80%', height: '20px' }}
+                          />    
+                        <div className='col-md-2 d-flex align-items-center justify-content-end'>
                               <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
                             </div>
                           </div>
