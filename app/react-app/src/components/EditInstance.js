@@ -80,13 +80,41 @@ function EditInstance() {
     const handleCustomFieldValueChange = (index, event) => {
         const { value } = event.target;
         const fields = [...instanceCustomFields];
-        fields[index].value = value;
+
+        // Checking if the field type is boolean
+        const fieldType = app.customFields.find(f => f._id === fields[index].customFieldId)?.type;
+
+        // Converting the value appropriately based on the field type
+        switch (fieldType) {
+            case 'bool':
+                fields[index].value = value === 'true'; // Converting 'true' or 'false' string to boolean
+                break;
+            case 'int':
+                fields[index].value = parseInt(value, 10); // Converting value to integer
+                break;
+            case 'float':
+                fields[index].value = parseFloat(value); // Converting value to float
+                break;
+            // Adding cases for other field types as needed
+            default:
+                fields[index].value = value; // Default to setting the value directly
+                break;
+        }
+
+        // Update the state with the modified fields array
         setInstanceCustomFields(fields);
     };
 
-    // Render input based on field type
+    // Render input based on field type, considering both app and instance data
     const renderInputField = (field, index) => {
-        switch (field.type) {
+        // Find the corresponding field from app.customFields
+        const appField = app.customFields.find(f => f._id === field.customFieldId);
+
+        if (!appField) {
+            return null; // Handle case where appField is not found
+        }
+
+        switch (appField.type) {
             case 'int':
                 return (
                     <input
