@@ -56,7 +56,7 @@ function Apps() {
         }
     };
 
-    // Function to start or stop an app
+    // Function to start or stop an instance
     const handleToggle = (instanceId) => {
         const newStatus = !instanceStatus[instanceId];
         setInstanceStatus(prevState => ({
