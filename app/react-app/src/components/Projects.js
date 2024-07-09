@@ -101,34 +101,58 @@ function Projects() {
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
+  // Function to start a stream
+  const startStream = async (streamId) => {
+    try {
+      await axios.put(`http://localhost:3001/streams/start/${streamId}`);
+      console.log(`Stream ${streamId} started`);
+    } catch (error) {
+      console.error(`Error starting stream ${streamId}:`, error);
+    }
+  };
+
+  // Function to stop a stream
+  const stopStream = async (streamId) => {
+    try {
+      await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
+      console.log(`Stream ${streamId} stopped`);
+    } catch (error) {
+      console.error(`Error stopping stream ${streamId}:`, error);
+    }
+  };
+
   // Function to start and stop project (using endpoints)
   const handleProjectStatus = async (projectId, status) => {
     try {
       if (status) {
-        // Stop project
+        // Stop project and its streams
         await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
         console.log("--> Stop Project");
+
+        // Stop all streams related to this project
+        const project = projects.find(p => p._id === projectId);
+        if (project) {
+          for (const stream of project.streams) {
+            await stopStream(stream._id);
+          }
+        }
       } else {
-        // Start project
+        // Start project and its streams
         await axios.put(`http://localhost:3001/projects/start/${projectId}`);
         console.log("--> Play Project");
 
         const ws = new WebSocket('ws://localhost:8082');
 
-        // Event listeners for WebSocket events
         ws.onopen = () => {
           console.log('WebSocket connection established');
           ws.send(projectId);
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
           console.log('Message received from server:', event.data);
-
           const data = JSON.parse(event.data);
 
-          // Verifica se 'streams' está definido e é um array
           if (Array.isArray(data.streams) && data.streams.length > 0) {
-            // Calcula o valor mínimo de 'percentage' na lista de streams
             const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
             console.log('Minimum percentage:', minPercentage);
 
@@ -137,7 +161,6 @@ function Projects() {
               [projectId]: parseFloat(minPercentage),
             }));
 
-            // Update stream percentages
             const newStreamPercentages = {};
             data.streams.forEach(stream => {
               newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
@@ -148,19 +171,13 @@ function Projects() {
               ...newStreamPercentages,
             }));
 
-
-            // Automatically pause the project when percentage reaches 100
             if (minPercentage === 100) {
               handleProjectStatus(projectId, true);
             }
-
-
           } else {
             console.log('No streams available');
           }
-
         };
-
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
@@ -169,6 +186,14 @@ function Projects() {
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
         };
+
+        // Start all streams related to this project
+        const project = projects.find(p => p._id === projectId);
+        if (project) {
+          for (const stream of project.streams) {
+            await startStream(stream._id);
+          }
+        }
       }
 
       // Refresh project list after updating status

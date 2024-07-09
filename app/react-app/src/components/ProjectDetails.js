@@ -13,7 +13,7 @@ function ProjectDetails() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [projectPercentages, setProjectPercentages] = useState({});
-
+    const [streamPercentages, setStreamPercentages] = useState({});
 
     // Get project details
     useEffect(() => {
@@ -35,64 +35,107 @@ function ProjectDetails() {
     // Function to start and stop project (using endpoints)
     const handleProjectStatus = async (projectId, status) => {
         try {
-            if (status) {
-                // Stop project
-                await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
-                console.log("--> Stop Project");
-            } else {
-                // Start project
-                await axios.put(`http://localhost:3001/projects/start/${projectId}`);
-                console.log("--> Play Project");
-              
-                const ws = new WebSocket('ws://localhost:8082');
+            if (project && project._id === projectId) {
+                if (status) {
+                    // Stop project
+                    await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
+                    console.log("--> Stop Project");
 
-                // Event listeners for WebSocket events
-                ws.onopen = () => {
-                  console.log('WebSocket connection established');
-                  ws.send(projectId);
-                };
-        
-                ws.onmessage = (event) => {
-                  console.log('Message received from server:', event.data);
-                
-                  const data = JSON.parse(event.data);
-                
-                  // Verifica se 'streams' está definido e é um array
-                  if (Array.isArray(data.streams) && data.streams.length > 0) {
-                    // Calcula o valor mínimo de 'percentage' na lista de streams
-                    const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
-                    console.log('Minimum percentage:', minPercentage);
-        
-                    setProjectPercentages((prev) => ({
-                      ...prev,
-                      [projectId]: parseFloat(minPercentage),
-                    }));
-                  
-                    // Automatically pause the project when percentage reaches 100
-                    if (minPercentage === 100) {
-                      handleProjectStatus(projectId, true);
+                    // Stop all streams related to this project
+                    for (const stream of project.streams) {
+                        await stopStream(stream._id);
                     }
-        
-                    
-                  } else {
-                    console.log('No streams available');
-                  }
-                
-                };
-                
-        
-                ws.onclose = () => {
-                  console.log('WebSocket connection closed');
-                };
-        
-                ws.onerror = (error) => {
-                  console.error('WebSocket error:', error);
-                };
+                } else {
+                    // Start project
+                    await axios.put(`http://localhost:3001/projects/start/${projectId}`);
+                    console.log("--> Play Project");
+
+                    // Start all streams related to this project
+                    for (const stream of project.streams) {
+                        await startStream(stream._id);
+                    }
+
+                    const ws = new WebSocket('ws://localhost:8082');
+
+                    // Event listeners for WebSocket events
+                    ws.onopen = () => {
+                        console.log('WebSocket connection established');
+                        ws.send(projectId);
+                    };
+
+                    ws.onmessage = (event) => {
+                        console.log('Message received from server:', event.data);
+
+                        const data = JSON.parse(event.data);
+
+                        // Check if 'streams' is defined and is an array
+                        if (Array.isArray(data.streams) && data.streams.length > 0) {
+                            // Calculate the minimum 'percentage' in the list of streams
+                            const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
+                            console.log('Minimum percentage:', minPercentage);
+
+                            setProjectPercentages((prev) => ({
+                                ...prev,
+                                [projectId]: parseFloat(minPercentage),
+                            }));
+
+                            // Update stream percentages
+                            const newStreamPercentages = {};
+                            data.streams.forEach(stream => {
+                                newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
+                            });
+
+                            setStreamPercentages(prev => ({
+                                ...prev,
+                                ...newStreamPercentages,
+                            }));
+
+                            // Automatically pause the project when percentage reaches 100
+                            if (minPercentage === 100) {
+                                handleProjectStatus(projectId, true);
+                            }
+
+                        } else {
+                            console.log('No streams available');
+                        }
+                    };
+
+                    ws.onclose = () => {
+                        console.log('WebSocket connection closed');
+                    };
+
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+                }
+
+                // Refresh project details after updating status
+                fetchProjectDetails();
+            } else {
+                console.error('Project not found');
             }
-            // Refresh project list after updating status
-            fetchProjectDetails();
         } catch (error) {
             console.error('Error updating project status:', error);
+        }
+    };
+
+    // Function to start a stream
+    const startStream = async (streamId) => {
+        try {
+            await axios.put(`http://localhost:3001/streams/start/${streamId}`);
+            console.log(`Stream ${streamId} started`);
+        } catch (error) {
+            console.error(`Error starting stream ${streamId}:`, error);
+        }
+    };
+
+    // Function to stop a stream
+    const stopStream = async (streamId) => {
+        try {
+            await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
+            console.log(`Stream ${streamId} stopped`);
+        } catch (error) {
+            console.error(`Error stopping stream ${streamId}:`, error);
         }
     };
 
@@ -215,10 +258,10 @@ function ProjectDetails() {
                         {/* Progress bar for project completion */}
                         <div className='ms-auto' style={{ width: '60%' }}>
                             <ProgressBar
-                            now={projectPercentages[project._id] || 0}
-                            label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
-                            style={{ width: '100%', height: '20px' }}
-                          />   
+                                now={projectPercentages[project._id] || 0}
+                                label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                                style={{ width: '100%', height: '20px' }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -242,7 +285,7 @@ function ProjectDetails() {
                                     <div key={stream._id} className={`col-md-${Math.ceil(12 / Math.min(project.streams.length, 5))} mb-3`}>
                                         <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                                             <div className='card-body d-flex justify-content-between align-items-center'>
-                                                <div className='col-10'>
+                                                <div className='col-12'>
                                                     {/* Stream topic */}
                                                     <span
                                                         onClick={() => navigate(`/streams/${stream._id}`)}
@@ -255,6 +298,16 @@ function ProjectDetails() {
                                                         {/* Stream details such as 'last started' and 'created at' */}
                                                         <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>{stream.dateLastStarted ? parseDate(stream.dateLastStarted) : 'Never'}</span></label>
                                                         <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(stream.dateCreated)}</label>
+                                                    </div>
+                                                    <div className='d-flex justify-content-start align-items-center mt-2'>
+                                                        {/* Conditionally render the progress bar */}
+                                                        {stream.playbackConfigType !== 'realTime' && (
+                                                            <ProgressBar
+                                                                now={streamPercentages[stream._id] || 0}
+                                                                label={`${streamPercentages[stream._id] ? streamPercentages[stream._id].toFixed(0) : 0}%`}
+                                                                style={{ width: '100%', height: '20px' }}
+                                                            />
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

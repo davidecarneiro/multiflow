@@ -105,12 +105,6 @@ router.put('/start/:id', async (req, res) => {
         stream.dateLastStarted = Date.now();
         const updatedStream = await stream.save();
 
-        // Send message to Kafka
-        sendMessageToKafka(updatedStream._id, 'start');
-
-        // Create a log for starting the stream
-        await createLog("Stream", "Started", updatedStream._id, updatedStream.topic);
-
         res.status(200).json(updatedStream);
     } catch (err) {
         // Log the error
@@ -136,12 +130,6 @@ router.put('/stop/:id', async (req, res) => {
         // Set the stream's status to false (stopped)
         stream.status = false;
         const updatedStream = await stream.save();
-
-        // Create a log for stopping the stream
-        await createLog("Stream", "Stopped", updatedStream._id, updatedStream.topic);
-
-        // Send message to Kafka
-        sendMessageToKafka(updatedStream._id, 'stop');
 
         res.status(200).json(updatedStream);
     } catch (err) {
