@@ -105,12 +105,6 @@ router.put('/start/:id', async (req, res) => {
         stream.dateLastStarted = Date.now();
         const updatedStream = await stream.save();
 
-        // Send message to Kafka
-        sendMessageToKafka(updatedStream._id, 'start');
-
-        // Create a log for starting the stream
-        await createLog("Stream", "Started", updatedStream._id, updatedStream.topic);
-
         res.status(200).json(updatedStream);
     } catch (err) {
         // Log the error
@@ -136,12 +130,6 @@ router.put('/stop/:id', async (req, res) => {
         // Set the stream's status to false (stopped)
         stream.status = false;
         const updatedStream = await stream.save();
-
-        // Create a log for stopping the stream
-        await createLog("Stream", "Stopped", updatedStream._id, updatedStream.topic);
-
-        // Send message to Kafka
-        sendMessageToKafka(updatedStream._id, 'stop');
 
         res.status(200).json(updatedStream);
     } catch (err) {
@@ -189,69 +177,64 @@ router.post('/', async (req, res) => {
 // Endpoint to update a stream by ID
 router.put('/:id', async (req, res) => {
     try {
-        // Logging: Indicating that we are updating the stream with its ID
         console.log(`Updating stream ${req.params.id}.`);
 
-        // Extracting stream information to update from the request body
-        const { projectId, topic, description, dataSourceType, dataSourceId,
-            filePath, connectionString, playbackConfigType, linesPerSecond,
-            allInSeconds, realTime } = req.body;
+        const {
+            projectId,
+            topic,
+            description,
+            dataSourceType,
+            dataSourceId,
+            filePath,
+            connectionString,
+            playbackConfigType,
+            linesPerSecond,
+            allInSeconds,
+            realTime,
+        } = req.body;
 
-        // Constructing the update object with allowed fields
         const updateObject = {};
-        if (projectId) {
-            updateObject.projectId = projectId;
-        }
-        if (topic) {
-            updateObject.topic = topic;
-        }
-        if (description) {
-            updateObject.description = description;
-        }
-        if (dataSourceType) {
-            updateObject.dataSourceType = dataSourceType;
-        }
-        if (dataSourceId) {
-            updateObject.dataSourceId = dataSourceId;
-        }
-        if (filePath) {
-            updateObject.filePath = filePath;
-        }
-        if (connectionString) {
-            updateObject.connectionString = connectionString;
-        }
-        if (playbackConfigType) {
-            updateObject.playbackConfigType = playbackConfigType;
-        }
-        if (linesPerSecond) {
-            updateObject.linesPerSecond = linesPerSecond;
-        }
-        if (allInSeconds) {
-            updateObject.allInSeconds = allInSeconds;
-        }
-        if (realTime) {
-            updateObject.realTime = realTime;
+
+        if (projectId) updateObject.projectId = projectId;
+        if (topic) updateObject.topic = topic;
+        if (description) updateObject.description = description;
+        if (dataSourceType) updateObject.dataSourceType = dataSourceType;
+        if (dataSourceId) updateObject.dataSourceId = dataSourceId;
+        if (filePath) updateObject.filePath = filePath;
+        if (connectionString) updateObject.connectionString = connectionString;
+        if (playbackConfigType) updateObject.playbackConfigType = playbackConfigType;
+
+        // Handle playbackConfigType and playbackConfigValue
+        if (playbackConfigType === 'linesPerSecond') {
+            updateObject.linesPerSecond = parseFloat(linesPerSecond);
+            updateObject.allInSeconds = null;
+            updateObject.realTime = false;
+        } else if (playbackConfigType === 'allInSeconds') {
+            updateObject.allInSeconds = parseFloat(allInSeconds);
+            updateObject.linesPerSecond = null;
+            updateObject.realTime = false;
+        } else if (playbackConfigType === 'realTime') {
+            updateObject.realTime = true;
+            updateObject.linesPerSecond = null;
+            updateObject.allInSeconds = null;
         }
 
-        // Setting the "lastUpdated" field to the current time
         updateObject.dateUpdated = Date.now();
 
-        // Finding and updating the stream by its ID
         const updatedStream = await Streams.findByIdAndUpdate(
-            req.params.id, // ID of the stream to update
-            updateObject, // Update object containing allowed fields
-            { new: true } // Return the updated stream after update
+            req.params.id,
+            updateObject,
+            { new: true }
         );
+
         if (!updatedStream) {
             return res.status(404).json({ message: "Stream not found" });
         }
 
-        // Create a log for the stream update
         await createLog("Stream", `Updated`, updatedStream._id, updatedStream.topic);
 
         res.status(200).json(updatedStream);
     } catch (err) {
-        // Log the error
         await createLog("Error", err.message, req.params.id, "");
         res.status(400).json({ message: err.message });
     }
