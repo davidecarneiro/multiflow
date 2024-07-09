@@ -11,7 +11,7 @@ const instanceSchema = new mongoose.Schema({
     dateUpdated: Date,
     customFields: [{
         customFieldId: { type: String, required: true },
-        value: { type: mongoose.Schema.Types.Mixed, required: true }
+        value: { type: mongoose.Schema.Types.Mixed, required: false, default: null }
     }] // Stores instances-specific values (value) for each custom field defined in the App
 });
 

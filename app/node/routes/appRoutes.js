@@ -113,6 +113,61 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Helper function to remove fields from instances
+const removeFieldsFromInstances = async (appId, removedFields) => {
+    try {
+        const instances = await Instances.find({ appId });
+        console.log(`Found ${instances.length} instances for appId ${appId}`);
+
+        for (const instance of instances) {
+            let modified = false;
+            removedFields.forEach(removedField => {
+                const fieldIndex = instance.customFields.findIndex(field => field.customFieldId === removedField._id.toString());
+                if (fieldIndex !== -1) {
+                    console.log(`Removing field ${removedField.name} from instance ${instance.name}`);
+                    instance.customFields.splice(fieldIndex, 1);
+                    modified = true;
+                }
+            });
+            if (modified) {
+                await instance.save();
+                console.log(`Instance ${instance.name} updated successfully.`);
+            }
+        }
+    } catch (err) {
+        console.error('Error removing fields from instances:', err.message);
+    }
+};
+
+// Helper function to update instances with new custom fields
+const updateInstancesWithNewField = async (appId, newFields) => {
+    try {
+        const instances = await Instances.find({ appId });
+        console.log(`Found ${instances.length} instances for appId ${appId}`);
+
+        for (const instance of instances) {
+            let modified = false;
+            newFields.forEach(newField => {
+                const fieldExists = instance.customFields.some(field => field.customFieldId === newField._id.toString());
+                if (!fieldExists) {
+                    console.log(`Adding new field ${newField.name} to instance ${instance.name}`);
+                    instance.customFields.push({
+                        customFieldId: newField._id.toString(),
+                        value: null
+                    });
+                    modified = true;
+                }
+            });
+            if (modified) {
+                await instance.save();
+                console.log(`Instance ${instance.name} updated successfully.`);
+            }
+        }
+    } catch (err) {
+        console.error('Error updating instances with new custom fields:', err.message);
+    }
+};
+
 // Endpoint to update an App by ID
 router.put('/:id', async (req, res) => {
     try {
@@ -128,12 +183,33 @@ router.put('/:id', async (req, res) => {
 
         updateObject.dateUpdated = Date.now();
 
-        const updatedApp = await Apps.findByIdAndUpdate(req.params.id, updateObject, { new: true });
-        if (!updatedApp) {
+        // Fetch the current state of the app to compare custom fields
+        const currentApp = await Apps.findById(req.params.id);
+        
+        if (!currentApp) {
             return res.status(404).json({ message: "App not found" });
         }
 
+        // Update the App document
+        const updatedApp = await Apps.findByIdAndUpdate(req.params.id, updateObject, { new: true });
+
+        // Log the update
         await createLog("App", `Updated`, updatedApp._id, updatedApp.name);
+
+        // If customFields are updated, update the related instances
+        if (customFields) {
+            // Fetch the updated fields from the updatedApp
+            const updatedFields = updatedApp.customFields.map(field => field._id.toString());
+
+            await updateInstancesWithNewField(req.params.id, updatedApp.customFields);
+
+            // Find removed fields
+            const removedFields = currentApp.customFields.filter(field => !updatedFields.includes(field._id.toString()));
+
+            if (removedFields.length > 0) {
+                await removeFieldsFromInstances(req.params.id, removedFields);
+            }
+        }
 
         res.status(200).json(updatedApp);
     } catch (err) {
