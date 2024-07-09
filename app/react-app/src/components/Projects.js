@@ -12,6 +12,7 @@ function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const [projectPercentages, setProjectPercentages] = useState({});
+  const [streamPercentages, setStreamPercentages] = useState({});
 
   // Get all projects
   useEffect(() => {
@@ -122,9 +123,9 @@ function Projects() {
 
         ws.onmessage = (event) => {
           console.log('Message received from server:', event.data);
-        
+
           const data = JSON.parse(event.data);
-        
+
           // Verifica se 'streams' está definido e é um array
           if (Array.isArray(data.streams) && data.streams.length > 0) {
             // Calcula o valor mínimo de 'percentage' na lista de streams
@@ -135,19 +136,31 @@ function Projects() {
               ...prev,
               [projectId]: parseFloat(minPercentage),
             }));
-          
+
+            // Update stream percentages
+            const newStreamPercentages = {};
+            data.streams.forEach(stream => {
+              newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
+            });
+
+            setStreamPercentages(prev => ({
+              ...prev,
+              ...newStreamPercentages,
+            }));
+
+
             // Automatically pause the project when percentage reaches 100
             if (minPercentage === 100) {
               handleProjectStatus(projectId, true);
             }
 
-            
+
           } else {
             console.log('No streams available');
           }
-        
+
         };
-        
+
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
@@ -224,12 +237,12 @@ function Projects() {
                         {/* Progress bar and Project status button */}
                         <div className='col-md-6'>
                           <div className='d-flex align-items-center justify-content-center w-100'>
-                          <ProgressBar
-                            now={projectPercentages[project._id] || 0}
-                            label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
-                            style={{ width: '80%', height: '20px' }}
-                          />    
-                        <div className='col-md-2 d-flex align-items-center justify-content-end'>
+                            <ProgressBar
+                              now={projectPercentages[project._id] || 0}
+                              label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                              style={{ width: '80%', height: '20px' }}
+                            />
+                            <div className='col-md-2 d-flex align-items-center justify-content-end'>
                               <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
                             </div>
                           </div>
@@ -251,7 +264,7 @@ function Projects() {
                               <li key={index} className="list-group-item mt-1 mb-1" style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                                 {/* Stream details */}
                                 <div className="d-flex align-items-center">
-                                  <div className='col-md-9'>
+                                  <div className='col-md-8'>
                                     <div className='d-flex align-items-center'>
                                       {/* Stream topic */}
                                       <span
@@ -268,11 +281,18 @@ function Projects() {
                                     </div>
                                   </div>
                                   {/* Stream status */}
-                                  <div className='col-md-3'>
-                                    <div className='d-flex align-items-center justify-content-end me-1'>
-                                      {/* Status indicator to be inserted here in a future task */}
+                                  {/* Conditionally render the progress bar */}
+                                  {stream.playbackConfigType !== 'realTime' && (
+                                    <div className='col-md-4'>
+                                      <div className='d-flex align-items-center justify-content-end me-1 w-100'>
+                                        <ProgressBar
+                                          now={streamPercentages[stream._id] || 0}
+                                          label={`${streamPercentages[stream._id] ? streamPercentages[stream._id].toFixed(0) : 0}%`}
+                                          style={{ width: '80%', height: '20px' }}
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </li>
                             ))

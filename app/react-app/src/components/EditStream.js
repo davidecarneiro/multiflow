@@ -81,11 +81,27 @@ function EditStream() {
         setAdditionalField(e.target.value);
     };
 
+    // Function to handle submit and update the stream
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            let postData = { topic, description, dataSourceType, dataSourceId, playbackConfigType, playbackConfigValue };
-
+            let postData = { 
+                topic, 
+                description, 
+                dataSourceType, 
+                dataSourceId: additionalField, 
+                playbackConfigType,
+            };
+    
+            // Include playbackConfigValue only if playbackConfigType is linesPerSecond or allInSeconds
+            if (playbackConfigType === 'linesPerSecond') {
+                postData.linesPerSecond = parseFloat(playbackConfigValue);
+            } else if (playbackConfigType === 'allInSeconds') {
+                postData.allInSeconds = parseFloat(playbackConfigValue);
+            } else if (playbackConfigType === 'realTime') {
+                postData.realTime = true;
+            }
+    
             if (dataSourceType === 'SQL') {
                 postData.connectionString = additionalField;
             } else if (dataSourceType === 'SavedDataSource') {
@@ -93,17 +109,14 @@ function EditStream() {
             } else if (dataSourceType === 'File') {
                 postData.filePath = additionalField;
             }
-
-            if (playbackConfigType === 'realTime') {
-                postData.realTime = true;
-            }
-
+    
             await axios.put(`http://localhost:3001/streams/${id}`, postData);
             navigate(`/streams/${id}`);
         } catch (error) {
             console.error('Error updating stream:', error);
         }
     };
+    
 
     const handleCancel = () => {
         navigate(`/streams/${id}`);
