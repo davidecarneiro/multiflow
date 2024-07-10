@@ -9,6 +9,7 @@ function Apps() {
     const [loading, setLoading] = useState(true);
     const [expandedApp, setExpandedApp] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [instanceStatus, setInstanceStatus] = useState({});
     const navigate = useNavigate();
 
     // Fetch all apps when the component mounts
@@ -55,7 +56,16 @@ function Apps() {
         }
     };
 
-    // Function to start or stop an app
+    // Function to start or stop an instance
+    const handleToggle = (instanceId) => {
+        const newStatus = !instanceStatus[instanceId];
+        setInstanceStatus(prevState => ({
+            ...prevState,
+            [instanceId]: newStatus
+        }));
+        // Implementacao Temporaria!
+    };
+
     // const handleAppStatus = async (appId, status) => {
     //     try {
     //         if (status) {
@@ -183,9 +193,9 @@ function Apps() {
                                             <div className='row d-flex justify-content-end'>
                                                 <div className='col-11'>
                                                     {/* Conditional rendering based on whether the app has instances */}
-                                                    {apps.find(currentApp => currentApp._id === app._id)?.instances.length > 0 ? (
+                                                    {app.instances.length > 0 ? (
                                                         // Render instances if there are any associated
-                                                        apps.find(currentApp => currentApp._id === app._id).instances.map((instance, index) => (
+                                                        app.instances.map((instance, index) => (
                                                             <li key={index} className="list-group-item mt-1 mb-1" style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                                                                 {/* Instance details */}
                                                                 <div className="d-flex align-items-center">
@@ -208,8 +218,15 @@ function Apps() {
                                                                     {/* Instance status */}
                                                                     <div className='col-md-3'>
                                                                         <div className='d-flex align-items-center justify-content-end'>
-                                                                            {/* <FontAwesomeIcon onClick={() => handleAppStatus(app._id, app.status)} icon={app.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} /> */}
-                                                                            <FontAwesomeIcon icon={app.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                                                                            <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
+                                                                                <input
+                                                                                    className="form-check-input"
+                                                                                    type="checkbox"
+                                                                                    id={`switch-${instance._id}`}
+                                                                                    checked={instanceStatus[instance._id]}
+                                                                                    onChange={() => handleToggle(instance._id)}
+                                                                                />
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>

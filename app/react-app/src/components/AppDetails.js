@@ -9,7 +9,8 @@ function AppDetails() {
     const navigate = useNavigate();
     const [app, setApp] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [copied, setCopied] = useState(false); // Keeping this for copying app ID
+    const [copied, setCopied] = useState(false);
+    const [instanceStatus, setInstanceStatus] = useState({});
 
     // Fetch app details when the component mounts
     useEffect(() => {
@@ -30,6 +31,16 @@ function AppDetails() {
     // Function to handle click event of "Add Instance" button
     const handleAddInstanceClick = () => {
         navigate(`/add-instance?appId=${app._id}`); // Pass appId as URL parameter
+    };
+
+    // Function to start or stop an instance
+    const handleToggle = (instanceId) => {
+        const newStatus = !instanceStatus[instanceId];
+        setInstanceStatus(prevState => ({
+            ...prevState,
+            [instanceId]: newStatus
+        }));
+        // Implementacao Temporaria!
     };
 
     // Handle delete app action
@@ -218,6 +229,20 @@ function AppDetails() {
                                                         {/* Instance details such as 'last started' and 'created at' */}
                                                         <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span></label>
                                                         <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(instance.dateCreated)}</label>
+                                                    </div>
+                                                </div>
+                                                {/* Toggle instance switch */}
+                                                <div className='col-md-2'>
+                                                    <div className='d-flex align-items-center justify-content-end'>
+                                                        <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
+                                                            <input
+                                                                className="form-check-input"
+                                                                type="checkbox"
+                                                                id={`switch-${instance._id}`}
+                                                                checked={instanceStatus[instance._id]}
+                                                                onChange={() => handleToggle(instance._id)}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
