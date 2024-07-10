@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faFolderPlus, faDiagramProject, faPenToSquare, faTrash, faCopy } from '@fortawesome/free-solid-svg-icons';
-//import WebSocket from 'ws';
+import { ProgressBar } from 'react-bootstrap';
+import { ProgressContext } from './ProgressContext';
 
 function StreamDetails() {
     const { id } = useParams();
@@ -18,6 +19,9 @@ function StreamDetails() {
     const [copiedProject, setCopiedProject] = useState(false);
     const [dataSource, setDataSource] = useState(null);
     const [playbackConfig, setPlaybackConfig] = useState(null);
+
+    const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
+
 
     // Empty dependency array ensures this effect runs only once
     useEffect(() => {
@@ -329,6 +333,21 @@ function StreamDetails() {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* Stream status */}
+                <h5 className='mt-3' style={{ fontWeight: '650' }}>Stream Status</h5>
+                <div className='card mt-2 col-md-3' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                    <div className='card-body d-flex align-items-center'>
+                        {/* Progress bar for stream completion */}
+                        <div className='ms-auto' style={{ width: '100%' }}>
+                            <ProgressBar
+                                now={streamPercentages[stream._id] || 0}
+                                label={`${streamPercentages[stream._id] ? streamPercentages[stream._id].toFixed(0) : 0}%`}
+                                style={{ width: '100%', height: '20px' }}
+                            />
+                        </div>
                     </div>
                 </div>
 
