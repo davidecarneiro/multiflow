@@ -1,9 +1,10 @@
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSearch, faChevronDown, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProgressBar } from 'react-bootstrap';
+import { ProgressContext } from './ProgressContext';
 
 function Projects() {
   const [projects, setProjects] = useState([]);
@@ -11,9 +12,8 @@ function Projects() {
   const [expandedProject, setExpandedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const [projectPercentages, setProjectPercentages] = useState({});
-  const [streamPercentages, setStreamPercentages] = useState({});
-
+  const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
+  
   // Get all projects
   useEffect(() => {
     fetchProjects();
@@ -30,6 +30,65 @@ function Projects() {
       setLoading(false);
     }
   };
+
+  const handleWebSocketMessage = useCallback((projectId, data) => {
+    const parsedData = JSON.parse(data);
+
+    if (Array.isArray(parsedData.streams) && parsedData.streams.length > 0) {
+      const minPercentage = Math.min(...parsedData.streams.map(stream => parseFloat(stream.percentage)));
+      console.log('Minimum percentage:', minPercentage);
+
+      setProjectPercentages((prev) => ({
+        ...prev,
+        [projectId]: parseFloat(minPercentage),
+      }));
+
+      const newStreamPercentages = {};
+      parsedData.streams.forEach(stream => {
+        newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
+      });
+
+      setStreamPercentages(prev => ({
+        ...prev,
+        ...newStreamPercentages,
+      }));
+
+      if (minPercentage === 100) {
+        handleProjectStatus(projectId, true);
+      }
+    } else {
+      console.log('No streams available');
+    }
+  }, [setProjectPercentages, setStreamPercentages]);
+
+  // Establish WebSocket connection
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8082');
+
+    ws.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    ws.onmessage = (event) => {
+      console.log('Message received from server:', event.data);
+      const projectId = projects.find(p => p._id); // Find the relevant project ID from the message
+      if (projectId) {
+        handleWebSocketMessage(projectId, event.data);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [projects, handleWebSocketMessage]);
 
   // Function to expand and collapse the project item
   const toggleProjectDescription = (projectId) => {
@@ -128,6 +187,7 @@ function Projects() {
         // Stop project and its streams
         await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
         console.log("--> Stop Project");
+        status = false;
 
         // Stop all streams related to this project
         const project = projects.find(p => p._id === projectId);
@@ -150,33 +210,7 @@ function Projects() {
 
         ws.onmessage = async (event) => {
           console.log('Message received from server:', event.data);
-          const data = JSON.parse(event.data);
-
-          if (Array.isArray(data.streams) && data.streams.length > 0) {
-            const minPercentage = Math.min(...data.streams.map(stream => parseFloat(stream.percentage)));
-            console.log('Minimum percentage:', minPercentage);
-
-            setProjectPercentages((prev) => ({
-              ...prev,
-              [projectId]: parseFloat(minPercentage),
-            }));
-
-            const newStreamPercentages = {};
-            data.streams.forEach(stream => {
-              newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
-            });
-
-            setStreamPercentages(prev => ({
-              ...prev,
-              ...newStreamPercentages,
-            }));
-
-            if (minPercentage === 100) {
-              handleProjectStatus(projectId, true);
-            }
-          } else {
-            console.log('No streams available');
-          }
+          handleWebSocketMessage(projectId, event.data);
         };
 
         ws.onclose = () => {
@@ -207,6 +241,7 @@ function Projects() {
   const handleAddProjectClick = () => {
     navigate('/add-project'); // Navigate to add project page
   };
+
 
   return (
     <div className='container-fluid'>
