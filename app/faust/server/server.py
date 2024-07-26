@@ -29,58 +29,49 @@ def list_python_files():
         print(f"Erro: {error_message}")
         return jsonify(error=error_message), 400
 
-'''@app.route('/start-faust', methods=['POST'])
-def start_faust():
-    try:
-        # Comando para iniciar a aplicação Faust
-        command = 'cd .. && cd /app && faust -A my_app worker -l info'
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            error_message = result.stderr
-            print(f"Erro ao iniciar a aplicação Faust: {error_message}")
-            return jsonify(error="Erro ao iniciar a aplicação Faust"), 500
-
-        print(f"Aplicação Faust iniciada: {result.stdout}")
-        return jsonify(message="Aplicação Faust iniciada com sucesso"), 200
-
-    except Exception as e:
-        error_message = str(e)
-        print(f"Erro: {error_message}")
-        return jsonify(error=error_message), 400'''
-
 @app.route('/start-faust', methods=['POST'])
 def start_faust():
     try:
-        
         data = request.get_json()
-        print('file_name--> ', data)
-        #if 'file_name' not in data:
-        #    print('file_name--> ')
-        #    return jsonify(error="Nome do ficheiro Python não foi enviado corretamente"), 400
-        file_name = data['command']
+        command = data.get('command')
+        
+        if not command:
+            return jsonify(error="No command provided"), 400
+        
+        print(f"Received command: {command}")
+        
+        # Preliminary command to change the directory
+        preliminary_command = "cd .. && cd /app"
+        preliminary_result = subprocess.run(preliminary_command, shell=True, capture_output=True, text=True)
 
-        print('file_name: ', file_name)
-        file_name_without_extension = file_name.replace(".py", "")
-        print(file_name_without_extension)  # Saída: my_app
+        if preliminary_result.returncode != 0:
+            error_message = preliminary_result.stderr
+            print(f"Error executing preliminary command: {error_message}")
+            return jsonify(status="Error", message=error_message), 500
 
-        #faust -A my_app.py worker
-        #command = f'cd .. && cd /app && faust -A {file_name} worker -l info'
-        command = f'cd .. && cd /app && {file_name_without_extension} -l info'
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        # Command to start the Faust process
+        faust_command = f'{command}'
 
-        if result.returncode != 0:
-            error_message = result.stderr
-            print(f"Erro ao iniciar a aplicação Faust: {error_message}")
-            return jsonify(error="Erro ao iniciar a aplicação Faust"), 500
+        # Start the Faust process using Popen
+        process = subprocess.Popen(faust_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='/app')
 
-        print(f"Aplicação Faust iniciada: {result.stdout}")
-        return jsonify(message="Aplicação Faust iniciada com sucesso"), 200
+        # Capture the PID of the process
+        pid = process.pid
+
+        print(f"Faust application started with PID: {pid}")
+
+        # Write the PID to a text file
+        with open(f'{pid}.txt', 'w') as pid_file:
+            pid_file.write(f"{pid} - {data.get('instanceName')}")
+
+        return jsonify(status="Running", pid=pid), 200
 
     except Exception as e:
         error_message = str(e)
-        print(f"Erro: {error_message}")
-        return jsonify(error=error_message), 400
+        print(f"Error: {error_message}")
+        return jsonify(status="Error", message=error_message), 400
+    
+
 
 
 if __name__ == '__main__':
