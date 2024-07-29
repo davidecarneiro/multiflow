@@ -179,6 +179,7 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+
 // Endpoint to start a specific Application Faust
 router.post('/start/:id', async (req, res) => {
     try {
@@ -219,7 +220,7 @@ router.post('/start/:id', async (req, res) => {
 
         // Create the body object for the Flask API call
         const body = {
-            command: "Nome=" + instance.name + " " + command,
+            command: "Name=" + instance.name + " Port=" + instance.port + " " + command,
             instanceId: instance._id,
             instanceName: instance.name
         };
@@ -234,7 +235,13 @@ router.post('/start/:id', async (req, res) => {
             return res.status(500).json({ error: "Error running the script" });
         }
 
-        console.log(`Script output: ${response.data.message}`);
+        if (response.data.pid) {
+            console.log(`Script PID: ${response.data.pid}`);
+            instance.pid = response.data.pid;
+        } else {
+            console.error(`Error running the script: ${response.data.error}`);
+            return res.status(500).json({ error: "Error PID" });
+        }
 
         // Setting the instance's status to true (started) and updating the dateLastStarted
         instance.status = true;
@@ -250,5 +257,50 @@ router.post('/start/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
+// Endpoint to stop a specific Application Faust
+router.post('/stop/:id', async (req, res) => {
+    try {
+        // Find the instance by its ID
+        const instance = await Instance.findById(req.params.id);
+
+        if (!instance) {
+            return res.status(404).json({ message: "Instance not found" });
+        }
+
+        if (!instance.pid) {
+            return res.status(400).json({ message: "Instance is not running" });
+        }
+
+        // Send a request to the Flask endpoint to stop the Faust application
+        const body = {
+            pid: instance.pid
+        };
+
+        const response = await axios.post('http://faust_server:5010/stop-faust', body);
+
+        if (response.data.status !== "Stopped") {
+            console.error(`Error stopping the process: ${response.data.message}`);
+            return res.status(500).json({ message: "Error stopping the process" });
+        }
+
+        // Update the instance status and remove the pid
+        instance.status = false;
+        instance.pid = null;
+        instance.dateLastStarted = null;
+        await instance.save();
+
+        await createLog("Instance", "Stopped", instance._id, instance.name);
+
+        res.status(200).json({ message: "Faust application stopped successfully" });
+    } catch (err) {
+        console.error(err.message);
+        await createLog("Error", err.message, req.params.id, "");
+        res.status(400).json({ message: err.message });
+    }
+});
+
+
+
 
 module.exports = router;
