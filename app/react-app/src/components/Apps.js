@@ -22,12 +22,22 @@ function Apps() {
         try {
             const response = await axios.get('http://localhost:3001/apps');
             setApps(response.data);
+    
+            // Initialize instanceStatus from the fetched data
+            const initialStatus = response.data.reduce((statusMap, app) => {
+                app.instances.forEach(instance => {
+                    statusMap[instance._id] = instance.status;
+                });
+                return statusMap;
+            }, {});
+    
+            setInstanceStatus(initialStatus);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching apps:', error);
             setLoading(false);
         }
-    };
+    };    
 
     // Function to toggle the expansion of app details
     const toggleAppDescription = (appId) => {
@@ -57,33 +67,28 @@ function Apps() {
     };
 
     // Function to start or stop an instance
-    const handleToggle = (instanceId) => {
-        const newStatus = !instanceStatus[instanceId];
-        setInstanceStatus(prevState => ({
-            ...prevState,
-            [instanceId]: newStatus
-        }));
-        // Implementacao Temporaria!
+    const handleToggle = async (instanceId) => {
+        try {
+            const currentStatus = instanceStatus[instanceId];
+
+            // Toggle the instance status
+            if (currentStatus) {
+                // Stop instance
+                await axios.post(`http://localhost:3001/instances/stop/${instanceId}`);
+            } else {
+                // Start instance
+                await axios.post(`http://localhost:3001/instances/start/${instanceId}`);
+            }
+
+            // Update the local status after the API call
+            setInstanceStatus(prevState => ({
+                ...prevState,
+                [instanceId]: !currentStatus
+            }));
+        } catch (error) {
+            console.error('Error toggling instance status:', error);
+        }
     };
-
-    // const handleAppStatus = async (appId, status) => {
-    //     try {
-    //         if (status) {
-    //             // Stop app
-    //             console.log("--> Stopping app");
-    //             await axios.put(`http://localhost:3001/apps/${appId}`, { status: 'stop' });
-    //         } else {
-    //             // Start app
-    //             console.log("--> Starting app");
-    //             await axios.put(`http://localhost:3001/apps/${appId}`, { status: 'start' });
-    //         }
-
-    //         // Refresh app list after updating status
-    //         fetchApps();
-    //     } catch (error) {
-    //         console.error('Error updating app status:', error);
-    //     }
-    // };
 
     // Function to parse date and calculate time from now
     const parseDate = (dateString) => {
@@ -175,13 +180,6 @@ function Apps() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                {/* [[Unused]] App status button 
-                                                <div className='col-md-3'>
-                                                    <div className='d-flex align-items-center justify-content-end'>
-                                                        <FontAwesomeIcon onClick={() => handleAppStatus(app._id, app.status)} icon={app.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
-                                                    </div>
-                                                </div>
-                                                */}
                                             </div>
                                             {/* App description */}
                                             {expandedApp === app._id && (
@@ -224,7 +222,7 @@ function Apps() {
                                                                                     className="form-check-input"
                                                                                     type="checkbox"
                                                                                     id={`switch-${instance._id}`}
-                                                                                    checked={instanceStatus[instance._id]}
+                                                                                    checked={instanceStatus[instance._id] || false}
                                                                                     onChange={() => handleToggle(instance._id)}
                                                                                 />
                                                                             </div>
