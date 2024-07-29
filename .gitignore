@@ -81,3 +81,5 @@ PRIVATE*
 # Adicionados manualmente
 app/react-app/node_modules/.cache/
 grafana/data/grafana.db
+app/faust/server/__pycache__/server.cpython-38.pyc
+grafana/data/grafana.db

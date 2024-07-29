@@ -61,8 +61,14 @@ router.get('/:id', async (req, res) => {
 // Endpoint to create a new Instance
 router.post('/', async (req, res) => {
     console.log("Creating a new instance.");
-    const { name, description, appId, customFields } = req.body;
+    const { name, description, appId, port, customFields } = req.body;
     try {
+        // Check if the port is already in use
+        const existingInstance = await Instance.findOne({ port });
+        if (existingInstance) {
+            return res.status(400).json({ message: "Port is already in use" });
+        }
+
         // Fetch the app to validate customFieldIds
         const app = await App.findById(appId);
         if (!app) {
@@ -80,6 +86,7 @@ router.post('/', async (req, res) => {
             name,
             description,
             appId,
+            port,
             customFields: customFields.map(field => ({
                 customFieldId: field.customFieldId,
                 value: field.value
@@ -94,21 +101,32 @@ router.post('/', async (req, res) => {
         // Respond with the saved instance object
         res.status(201).json(savedInstance);
     } catch (err) {
-        // Handle any errors
-        await createLog("Error", err.message, "", "");
-        res.status(400).json({ message: err.message });
+        if (err.code === 11000) { // MongoDB duplicate key error code
+            res.status(400).json({ message: "Port must be unique" });
+        } else {
+            await createLog("Error", err.message, "", "");
+            res.status(400).json({ message: err.message });
+        }
     }
 });
 
 // Endpoint to update an Instance by ID
 router.put('/:id', async (req, res) => {
     console.log(`Updating instance ${req.params.id}.`);
-    const { name, description, customFields, status } = req.body;
+    const { name, description, customFields, status, port } = req.body;
     try {
         const updatedInstance = await Instance.findById(req.params.id);
         if (!updatedInstance) {
             return res.status(404).json({ message: "Instance not found" });
         }
+        // Check if the port is already in use by another instance
+        if (port && port !== updatedInstance.port) {
+            const existingInstance = await Instance.findOne({ port });
+            if (existingInstance) {
+                return res.status(400).json({ message: "Port is already in use" });
+            }
+        }
+
         // Fetch the app to validate customFieldIds
         const app = await App.findById(updatedInstance.appId);
         if (!app) {
@@ -126,12 +144,17 @@ router.put('/:id', async (req, res) => {
         if (description) updatedInstance.description = description;
         if (customFields) updatedInstance.customFields = customFields;
         if (status !== undefined) updatedInstance.status = status;
+        if (port) updatedInstance.port = port; // Update the port
         updatedInstance.dateUpdated = Date.now();
         const savedInstance = await updatedInstance.save();
         await createLog("Instance", "Updated", savedInstance._id, savedInstance.name);
         res.status(200).json(savedInstance);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        if (err.code === 11000) { // MongoDB duplicate key error code
+            res.status(400).json({ message: "Port must be unique" });
+        } else {
+            res.status(400).json({ message: err.message });
+        }
     }
 });
 
@@ -155,7 +178,6 @@ router.delete('/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
-
 
 // Endpoint to start a specific Application Faust
 router.post('/start/:id', async (req, res) => {
