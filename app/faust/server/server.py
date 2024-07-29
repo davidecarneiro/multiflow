@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask import request
+import signal
 
 app = Flask(__name__)
 CORS(app)
@@ -61,8 +62,8 @@ def start_faust():
         print(f"Faust application started with PID: {pid}")
 
         # Write the PID to a text file
-        with open(f'{pid}.txt', 'w') as pid_file:
-            pid_file.write(f"{pid} - {data.get('instanceName')}")
+        #with open(f'{pid}.txt', 'w') as pid_file:
+        #    pid_file.write(f"{pid} - {data.get('instanceName')}")
 
         return jsonify(status="Running", pid=pid), 200
 
@@ -72,6 +73,39 @@ def start_faust():
         return jsonify(status="Error", message=error_message), 400
     
 
+@app.route('/stop-faust', methods=['POST'])
+def stop_faust():
+    try:
+        data = request.get_json()
+        pid = data.get('pid')
+
+        if not pid:
+            return jsonify(status="Error", message="No PID provided"), 400
+
+        try:
+            pid = int(pid)
+        except ValueError:
+            return jsonify(status="Error", message="Invalid PID"), 400
+
+        # Check if the process exists before attempting to kill it
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return jsonify(status="Error", message="Process not found"), 404
+        except Exception as e:
+            return jsonify(status="Error", message=str(e)), 500
+
+        # Attempt to kill the process
+        try:
+            os.kill(pid, signal.SIGTERM)
+            os.kill(pid+1, signal.SIGTERM) #kill process pid+1 (faust app)
+        except Exception as e:
+            return jsonify(status="Error", message=str(e)), 500
+
+        return jsonify(status="Stopped", message=f"Process {pid} stopped successfully"), 200
+
+    except Exception as e:
+        return jsonify(status="Error", message=str(e)), 400
 
 
 if __name__ == '__main__':

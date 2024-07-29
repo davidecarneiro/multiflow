@@ -2,11 +2,12 @@ import faust
 import os
 
 # Command line example: Par1=aaaaa Par2=bbbbb Par3=ccccc faust -A my_app2 worker -l info
-name = os.getenv('Nome', 'my_app2')
+name = os.getenv('Name', 'my_app2')
+portx = os.getenv('Port', '6066')
 par4 = os.getenv('CField', 'default_value4')
 
 # Create a Faust application
-app = faust.App(name, broker='kafka_server://localhost:9092', web_port=int(par4))
+app = faust.App(name, broker='kafka_server://localhost:9092', web_port=int(portx))
 
 # Define a Kafka topic
 topic = app.topic('phd_kafka')
@@ -25,6 +26,7 @@ async def example_agent(stream):
             f'Par3 is: {par3}\n'
             f'Nome is: {name}\n'
             f'Par4 is: {par4}\n'
+            f'Port is: {portx}\n'
             f'Received event: {event}\n'
         )
         print(message)
