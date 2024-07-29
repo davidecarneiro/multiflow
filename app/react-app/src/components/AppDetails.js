@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport } from '@fortawesome/free-solid-svg-icons';
 
 function AppDetails() {
     const { id } = useParams();
@@ -229,6 +229,7 @@ function AppDetails() {
                                                         {/* Instance details such as 'last started' and 'created at' */}
                                                         <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span></label>
                                                         <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(instance.dateCreated)}</label>
+                                                        <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faPassport} /><span className='ms-1'></span>{instance.port}</label>
                                                     </div>
                                                 </div>
                                                 {/* Toggle instance switch */}

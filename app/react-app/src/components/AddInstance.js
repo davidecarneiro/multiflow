@@ -6,10 +6,15 @@ function AddInstance() {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [port, setPort] = useState('');
+    const [portError, setPortError] = useState('');
     const [customFields, setCustomFields] = useState([]);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const appId = queryParams.get('appId');
+
+    // Docker ports that are no allowed to being used
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017];
 
     // Fetch the app details and custom fields when the component mounts
     useEffect(() => {
@@ -29,11 +34,20 @@ function AddInstance() {
     // Handle form submission to create a new instance
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setPortError('');
+
+        // Check if the port is one of the Docker ports
+        if (dockerPorts.includes(Number(port))) {
+            setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+            return;
+        }
+
         try {
             const postData = {
                 appId,
                 name,
                 description,
+                port,
                 customFields: customFields.map(field => ({
                     customFieldId: field._id,
                     value: field.value
@@ -41,13 +55,16 @@ function AddInstance() {
             };
 
             const response = await axios.post(`http://localhost:3001/instances`, postData);
-
             console.log('Instance added successfully:', response.data); // Debug: Log success message
 
             // Redirect the user to the instances page after adding the instance
             navigate(`/apps/${appId}`);
         } catch (error) {
-            console.error('Error adding instance:', error);
+            if (error.response && error.response.data.message === 'Port is already in use') {
+                setPortError('The entered Port is already in use. Please choose a different one.');
+            } else {
+                console.error('Error adding instance:', error);
+            }
         }
     };
 
@@ -66,12 +83,12 @@ function AddInstance() {
         // Validate input based on field type
         switch (fieldType) {
             case 'int':
-                if (/^-?\d+$/.test(value)) { // Regex for integer
+                if (/^-?\d+$/.test(value)) {
                     fields[index].value = parseInt(value, 10);
                 }
                 break;
             case 'float':
-                if (/^-?\d*\.?\d+$/.test(value)) { // Regex for float
+                if (/^-?\d*\.?\d+$/.test(value)) {
                     fields[index].value = parseFloat(value);
                 }
                 break;
@@ -144,7 +161,6 @@ function AddInstance() {
             <div className='page-header mt-2'>
                 <h1 className='page-title'>Add new instance</h1>
             </div>
-
             {/* Form */}
             <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
                 <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
@@ -158,7 +174,11 @@ function AddInstance() {
                                 <label htmlFor="description" className="form-label">Instance Description</label>
                                 <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
                             </div>
-
+                            <div className="col-3 mb-3">
+                                <label htmlFor="port" className="form-label">Port</label>
+                                <input type="number" className="form-control" id="port" placeholder='Enter the port' value={port} onChange={(e) => setPort(e.target.value)} required />
+                                {portError && <small className="text-danger">{portError}</small>}
+                            </div>
                             {/* Custom Fields */}
                             <div className="mb-3">
                                 <label className="form-label">Custom Fields</label>
@@ -172,7 +192,7 @@ function AddInstance() {
                                                 placeholder="Name"
                                                 name={`name-${index}`}
                                                 value={field.name}
-                                                readOnly // Make the name field read-only
+                                                readOnly
                                                 style={{ backgroundColor: '#F5F6F5', border: 'none' }}
                                             />
                                         </div>
@@ -182,7 +202,7 @@ function AddInstance() {
                                                 className="form-select"
                                                 name={`type-${index}`}
                                                 value={field.type}
-                                                disabled // Disable type selection
+                                                disabled
                                                 style={{ backgroundColor: '#F5F6F5', border: 'none' }}
                                             >
                                                 <option value="">Type</option>
@@ -206,7 +226,6 @@ function AddInstance() {
                                     </div>
                                 ))}
                             </div>
-
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>

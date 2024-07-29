@@ -53,7 +53,7 @@ def start_faust():
         faust_command = f'{command}'
 
         # Start the Faust process using Popen
-        process = subprocess.Popen(faust_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd='/app')
+        process = subprocess.Popen(faust_command, shell=True, cwd='/app')
 
         # Capture the PID of the process
         pid = process.pid

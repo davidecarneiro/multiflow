@@ -8,9 +8,12 @@ function EditInstance() {
     const [app, setApp] = useState(null);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [port, setPort] = useState('');
+    const [portError, setPortError] = useState('');
     const [instanceCustomFields, setInstanceCustomFields] = useState([]);
     const [loading, setLoading] = useState(true);
     const [appId, setAppId] = useState('');
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017];
 
     // Fetch instance details when the component mounts
     useEffect(() => {
@@ -21,6 +24,7 @@ function EditInstance() {
                 setName(instanceData.name);
                 setAppId(instanceData.appId);
                 setDescription(instanceData.description);
+                setPort(instanceData.port);
                 setInstanceCustomFields(instanceData.customFields.map(field => ({
                     ...field,
                     value: field.value || ''
@@ -55,9 +59,26 @@ function EditInstance() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Validate port before submitting
+            if (dockerPorts.includes(parseInt(port))) {
+                setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+                return;
+            }
+
+            // Check if the port is already in use by another instance
+            const response = await axios.get(`http://localhost:3001/instances`);
+            const instances = response.data;
+            const existingInstance = instances.find(inst => inst.port === parseInt(port) && inst._id !== id);
+
+            if (existingInstance) {
+                setPortError('The entered Port is already in use. Please choose a different one.');
+                return;
+            }
+
             const postData = {
                 name,
                 description,
+                port: parseInt(port), // Convert port to number
                 customFields: instanceCustomFields
             };
 
@@ -186,6 +207,23 @@ function EditInstance() {
                             <div className="mb-3">
                                 <label htmlFor="description" className="form-label">Instance Description</label>
                                 <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
+                            </div>
+                            {/* Instance Port */}
+                            <div className="col-3 mb-3">
+                                <label htmlFor="port" className="form-label">Instance Port</label>
+                                <input
+                                    type="number"
+                                    className={`form-control ${portError ? 'is-invalid' : ''}`}
+                                    id="port"
+                                    placeholder='Enter the instance port'
+                                    value={port}
+                                    onChange={(e) => {
+                                        setPort(e.target.value);
+                                        setPortError('');
+                                    }}
+                                    required
+                                />
+                                {portError && <div className="invalid-feedback">{portError}</div>}
                             </div>
 
                             {/* Custom Fields */}

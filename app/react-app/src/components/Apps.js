@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faChevronDown, faChevronRight, faClock, faFolderPlus, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPassport, faChevronDown, faChevronRight, faClock, faFolderPlus, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 
 function Apps() {
@@ -218,6 +218,7 @@ function Apps() {
                                                                     {/* Instance status */}
                                                                     <div className='col-md-3'>
                                                                         <div className='d-flex align-items-center justify-content-end'>
+                                                                            <label className='me-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faPassport} className='me-1'/>{instance.port}</label>
                                                                             <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
                                                                                 <input
                                                                                     className="form-check-input"

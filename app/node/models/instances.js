@@ -5,6 +5,7 @@ const instanceSchema = new mongoose.Schema({
     name: { type: String, required: true },
     description: String,
     appId: { type: String, required: true }, // Stores a reference to the parent App using its _id
+    port: { type: Number, required: true, unique: true }, // Refers to the port used to run at Faust and must be unique
     dateCreated: { type: Date, default: Date.now },
     dateLastStarted: { type: Date },
     status: { type: Boolean, required: true, default: false },
