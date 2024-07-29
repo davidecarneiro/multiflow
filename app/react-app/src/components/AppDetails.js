@@ -17,7 +17,13 @@ function AppDetails() {
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${id}`);
-                setApp(response.data); // Extract 'app' from the response data
+                setApp(response.data);
+                // Initialize instance statuses based on fetched data
+                const initialStatus = response.data.instances.reduce((acc, instance) => {
+                    acc[instance._id] = instance.status; // Assume the API returns status
+                    return acc;
+                }, {});
+                setInstanceStatus(initialStatus);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching app details:', error);
@@ -30,17 +36,30 @@ function AppDetails() {
 
     // Function to handle click event of "Add Instance" button
     const handleAddInstanceClick = () => {
-        navigate(`/add-instance?appId=${app._id}`); // Pass appId as URL parameter
+        navigate(`/add-instance?appId=${app._id}`);
     };
 
     // Function to start or stop an instance
-    const handleToggle = (instanceId) => {
-        const newStatus = !instanceStatus[instanceId];
-        setInstanceStatus(prevState => ({
-            ...prevState,
-            [instanceId]: newStatus
-        }));
-        // Implementacao Temporaria!
+    const handleToggle = async (instanceId) => {
+        try {
+            const currentStatus = instanceStatus[instanceId];
+            const newStatus = !currentStatus;
+
+            // Make API call to update the status
+            if (newStatus) {
+                await axios.post(`http://localhost:3001/instances/start/${instanceId}`);
+            } else {
+                await axios.post(`http://localhost:3001/instances/stop/${instanceId}`);
+            }
+
+            // Update local status after the API call
+            setInstanceStatus(prevState => ({
+                ...prevState,
+                [instanceId]: newStatus
+            }));
+        } catch (error) {
+            console.error('Error toggling instance status:', error);
+        }
     };
 
     // Handle delete app action
@@ -168,7 +187,7 @@ function AppDetails() {
                                 return str.slice(0, length) + '...';
                             };
 
-                            // To limit the ammount of letters displayed
+                            // To limit the amount of letters displayed
                             const truncatedName = truncate(field.name, 17);
 
                             return (
@@ -240,7 +259,7 @@ function AppDetails() {
                                                                 className="form-check-input"
                                                                 type="checkbox"
                                                                 id={`switch-${instance._id}`}
-                                                                checked={instanceStatus[instance._id]}
+                                                                checked={instanceStatus[instance._id] || false}
                                                                 onChange={() => handleToggle(instance._id)}
                                                             />
                                                         </div>
