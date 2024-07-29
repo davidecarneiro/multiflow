@@ -235,8 +235,6 @@ router.post('/start/:id', async (req, res) => {
         }
 
         console.log(`Script output: ${response.data.message}`);
-        console.log(`Script output: ${response.data}`);
-        console.log(`Script output: ${response}`);
 
         // Setting the instance's status to true (started) and updating the dateLastStarted
         instance.status = true;
