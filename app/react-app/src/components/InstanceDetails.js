@@ -161,6 +161,15 @@ function InstanceDetails() {
                 <h5 style={{ fontWeight: '650' }}>Description</h5>
                 <h6>{instance.description ? instance.description : "This instance has no description."}</h6>
 
+                {/* Port Number */}
+                <h5 className='mt-3' style={{ fontWeight: '650' }}>Port Number</h5>
+                <div className='d-flex align-items-center'>
+                    <label>Port:</label>
+                    <div className='card ms-2' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px', minHeight: '100%' }}>
+                        <span className='p-2'>{instance.port}</span>
+                    </div>
+                </div>
+
                 {/* Configuration */}
                 <h5 className='mt-3' style={{ fontWeight: '650' }}>Configuration</h5>
                 {app && app.customFields && app.customFields.length > 0 ? (
