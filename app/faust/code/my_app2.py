@@ -5,17 +5,17 @@ import os
 name = os.getenv('Name', 'my_app2')
 portx = os.getenv('Port', '6066')
 par4 = os.getenv('CField', 'default_value4')
+topic = os.getenv('StreamTopic', 'dataset')
 
 # Create a Faust application
 app = faust.App(name, broker='kafka_server://localhost:9092', web_port=int(portx))
 
 # Define a Kafka topic
-topic = app.topic('phd_kafka')
+topic = app.topic(topic)
 
 # Read environment variables
 par1 = os.getenv('Par1', 'default_value1')
 par2 = os.getenv('Par2', 'default_value2')
-par3 = os.getenv('Par3', 'default_value3')
 
 @app.agent(topic)
 async def example_agent(stream):
@@ -23,8 +23,8 @@ async def example_agent(stream):
         message = (
             f'Par1 is: {par1}\n'
             f'Par2 is: {par2}\n'
-            f'Par3 is: {par3}\n'
-            f'Nome is: {name}\n'
+            f'Topic is: {topic}\n'
+            f'Name is: {name}\n'
             f'Par4 is: {par4}\n'
             f'Port is: {portx}\n'
             f'Received event: {event}\n'

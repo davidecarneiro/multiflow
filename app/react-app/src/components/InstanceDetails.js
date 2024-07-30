@@ -8,6 +8,7 @@ function InstanceDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [instance, setInstance] = useState(null);
+    const [instanceStatus, setInstanceStatus] = useState({});
     const [app, setApp] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -20,6 +21,9 @@ function InstanceDetails() {
                 const response = await axios.get(`http://localhost:3001/instances/${id}`);
                 setInstance(response.data);
                 setLoading(false);
+                // Initialize instance statuses based on fetched data
+                const initialStatus = { [response.data._id]: response.data.status };
+                setInstanceStatus(initialStatus);
             } catch (error) {
                 console.error('Error fetching instance details:', error);
                 setLoading(false);
@@ -106,6 +110,29 @@ function InstanceDetails() {
         }, 1000); // Hide the confirmation message after 1 second
     };
 
+    // Function to start or stop the instance
+    const handleToggle = async (instanceId) => {
+        try {
+            const currentStatus = instanceStatus[instanceId];
+            const newStatus = !currentStatus;
+
+            // Make API call to update the status
+            if (newStatus) {
+                await axios.post(`http://localhost:3001/instances/start/${instanceId}`);
+            } else {
+                await axios.post(`http://localhost:3001/instances/stop/${instanceId}`);
+            }
+
+            // Update local status after the API call
+            setInstanceStatus(prevState => ({
+                ...prevState,
+                [instanceId]: newStatus
+            }));
+        } catch (error) {
+            console.error('Error toggling instance status:', error);
+        }
+    };
+
     // Handle delete instance action
     const handleDelete = async () => {
         const confirmDelete = window.confirm("Are you sure you want to delete this instance?");
@@ -161,88 +188,108 @@ function InstanceDetails() {
                 <h5 style={{ fontWeight: '650' }}>Description</h5>
                 <h6>{instance.description ? instance.description : "This instance has no description."}</h6>
 
-                {/* Port Number */}
-                <h5 className='mt-3' style={{ fontWeight: '650' }}>Port Number</h5>
-                <div className='d-flex align-items-center'>
-                    <label>Port:</label>
-                    <div className='card ms-2' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px', minHeight: '100%' }}>
-                        <span className='p-2'>{instance.port}</span>
+                {/* Status */}
+                <h5 style={{ fontWeight: '650' }}>Instance Status</h5>
+                <div className='card mt-2 p-2 col-3' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                    <div className='d-flex align-items-center'>
+                        <div className='ps-2'>
+                            {/* Toggle instance switch */}
+                            <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id={`switch-${instance._id}`}
+                                    checked={instanceStatus[instance._id] || false}
+                                    onChange={() => handleToggle(instance._id)}
+                                />
+                            </div>
+                        </div>
+                        <label className='ps-2'>{instanceStatus[instance._id] ? 'Running' : 'Stopped'}</label>
                     </div>
                 </div>
+            </div>
 
-                {/* Configuration */}
-                <h5 className='mt-3' style={{ fontWeight: '650' }}>Configuration</h5>
-                {app && app.customFields && app.customFields.length > 0 ? (
-                    <div className='row'>
-                        {app.customFields.map((field, index) => {
-                            const instanceField = instance.customFields.find(cf => cf.customFieldId === field._id);
-                            if (!instanceField) return null;
+            {/* Port Number */}
+            <h5 className='mt-3' style={{ fontWeight: '650' }}>Port Number</h5>
+            <div className='d-flex align-items-center'>
+                <label>Port:</label>
+                <div className='card ms-2' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px', minHeight: '100%' }}>
+                    <span className='p-2'>{instance.port}</span>
+                </div>
+            </div>
 
-                            const truncate = (str, length) => {
-                                if (str.length <= length) return str;
-                                return str.slice(0, length) + '...';
-                            };
+            {/* Configuration */}
+            <h5 className='mt-3' style={{ fontWeight: '650' }}>Configuration</h5>
+            {app && app.customFields && app.customFields.length > 0 ? (
+                <div className='row'>
+                    {app.customFields.map((field, index) => {
+                        const instanceField = instance.customFields.find(cf => cf.customFieldId === field._id);
+                        if (!instanceField) return null;
 
-                            // To limit the amount of letters displayed
-                            const truncatedName = truncate(field.name, 17);
+                        const truncate = (str, length) => {
+                            if (str.length <= length) return str;
+                            return str.slice(0, length) + '...';
+                        };
 
-                            return (
-                                <div key={index} className={`col-md-${Math.ceil(12 / Math.min(app.customFields.length, 5))} mb-3`}>
-                                    <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px', minHeight: '100%' }}>
-                                        <div className='card-body d-flex flex-column'>
-                                            <div className='mb-2'>
-                                                <span><strong>Name:</strong> {truncatedName}</span>
-                                            </div>
-                                            <div className='mb-2'>
-                                                <span><strong>Type:</strong> {field.type}</span>
-                                            </div>
-                                            <div className='d-flex align-items-center'>
-                                                <span className='me-2'><strong>Value:</strong></span>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    value={instanceField.value}
-                                                    readOnly // Make the value field read-only
-                                                    style={{ backgroundColor: '#FFFFFF', border: 'none', paddingLeft: '0.5rem' }}
-                                                />
-                                            </div>
+                        // To limit the amount of letters displayed
+                        const truncatedName = truncate(field.name, 17);
+
+                        return (
+                            <div key={index} className={`col-md-${Math.ceil(12 / Math.min(app.customFields.length, 5))} mb-3`}>
+                                <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px', minHeight: '100%' }}>
+                                    <div className='card-body d-flex flex-column'>
+                                        <div className='mb-2'>
+                                            <span><strong>Name:</strong> {truncatedName}</span>
+                                        </div>
+                                        <div className='mb-2'>
+                                            <span><strong>Type:</strong> {field.type}</span>
+                                        </div>
+                                        <div className='d-flex align-items-center'>
+                                            <span className='me-2'><strong>Value:</strong></span>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={instanceField.value}
+                                                readOnly // Make the value field read-only
+                                                style={{ backgroundColor: '#FFFFFF', border: 'none', paddingLeft: '0.5rem' }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <p className='text-muted'>There are no custom fields defined for this app.</p>
-                )}
-
-                {/* App associated */}
-                {app && (
-                    <div className='mt-3'>
-                        <h5 style={{ fontWeight: '650' }}>App Associated</h5>
-                        <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                            <div className='card-body'>
-                                <div onClick={() => navigate(`/apps/${instance.appId}`)}
-                                    style={{ cursor: 'pointer', textDecoration: 'none' }}
-                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
-                                    {app.name}
-                                </div>
-                                <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyAppId}>
-                                    <FontAwesomeIcon icon={faCube} />
-                                    <span className='ms-1' style={{ cursor: 'pointer' }}>App Id: {app._id}</span>
-                                    {copiedApp && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
-                                </span>
                             </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className='text-muted'>There are no custom fields defined for this app.</p>
+            )}
+
+            {/* App associated */}
+            {app && (
+                <div className='mt-3'>
+                    <h5 style={{ fontWeight: '650' }}>App Associated</h5>
+                    <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                        <div className='card-body'>
+                            <div onClick={() => navigate(`/apps/${instance.appId}`)}
+                                style={{ cursor: 'pointer', textDecoration: 'none' }}
+                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                                {app.name}
+                            </div>
+                            <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyAppId}>
+                                <FontAwesomeIcon icon={faCube} />
+                                <span className='ms-1' style={{ cursor: 'pointer' }}>App Id: {app._id}</span>
+                                {copiedApp && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
+                            </span>
                         </div>
                     </div>
-                )}
-
-                {/* Buttons for Edit and Delete */}
-                <div className="d-flex justify-content-end">
-                    <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}><FontAwesomeIcon icon={faPenToSquare} /> Edit</button>
-                    <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}><FontAwesomeIcon icon={faTrash} /> Delete</button>
                 </div>
+            )}
+
+            {/* Buttons for Edit and Delete */}
+            <div className="d-flex justify-content-end">
+                <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}><FontAwesomeIcon icon={faPenToSquare} /> Edit</button>
+                <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}><FontAwesomeIcon icon={faTrash} /> Delete</button>
             </div>
         </div>
     );
