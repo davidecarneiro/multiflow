@@ -8,12 +8,13 @@ function AddInstance() {
     const [description, setDescription] = useState('');
     const [port, setPort] = useState('');
     const [portError, setPortError] = useState('');
+    const [nameError, setNameError] = useState('');  // State variable for name error
     const [customFields, setCustomFields] = useState([]);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const appId = queryParams.get('appId');
 
-    // Docker ports that are no allowed to being used
+    // Docker ports that are not allowed to being used
     const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017];
 
     // Fetch the app details and custom fields when the component mounts
@@ -35,10 +36,17 @@ function AddInstance() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setPortError('');
+        setNameError('');
 
         // Check if the port is one of the Docker ports
         if (dockerPorts.includes(Number(port))) {
             setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+            return;
+        }
+
+        // Check if the name contains spaces
+        if (/\s/.test(name)) {
+            setNameError('Instance name should not contain spaces.');
             return;
         }
 
@@ -168,15 +176,45 @@ function AddInstance() {
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
                                 <label htmlFor="name" className="form-label">Instance Name</label>
-                                <input type="text" className="form-control" id="name" placeholder='Enter the instance name' value={name} onChange={(e) => setName(e.target.value)} required />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    id="name"
+                                    placeholder='Enter the instance name'
+                                    value={name}
+                                    onChange={(e) => {
+                                        setName(e.target.value);
+                                        if (/\s/.test(e.target.value)) {
+                                            setNameError('Instance name should not contain spaces.');
+                                        } else {
+                                            setNameError('');
+                                        }
+                                    }}
+                                    required
+                                />
+                                {nameError && <small className="text-danger">{nameError}</small>}
                             </div>
                             <div className="mb-3">
                                 <label htmlFor="description" className="form-label">Instance Description</label>
-                                <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
+                                <textarea
+                                    className="form-control"
+                                    id="description"
+                                    placeholder='Enter the description'
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                ></textarea>
                             </div>
                             <div className="col-3 mb-3">
                                 <label htmlFor="port" className="form-label">Port</label>
-                                <input type="number" className="form-control" id="port" placeholder='Enter the port' value={port} onChange={(e) => setPort(e.target.value)} required />
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="port"
+                                    placeholder='Enter the port'
+                                    value={port}
+                                    onChange={(e) => setPort(e.target.value)}
+                                    required
+                                />
                                 {portError && <small className="text-danger">{portError}</small>}
                             </div>
                             {/* Custom Fields */}

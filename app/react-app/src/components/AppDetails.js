@@ -20,7 +20,7 @@ function AppDetails() {
                 setApp(response.data);
                 // Initialize instance statuses based on fetched data
                 const initialStatus = response.data.instances.reduce((acc, instance) => {
-                    acc[instance._id] = instance.status; // Assume the API returns status
+                    acc[instance._id] = instance.status;
                     return acc;
                 }, {});
                 setInstanceStatus(initialStatus);
