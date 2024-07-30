@@ -5,13 +5,13 @@ import os
 name = os.getenv('Name', 'my_app2')
 portx = os.getenv('Port', '6066')
 par4 = os.getenv('CField', 'default_value4')
-topic = os.getenv('StreamTopic', 'dataset')
+topic_name = os.getenv('StreamTopic', 'phd_kafka')
 
 # Create a Faust application
 app = faust.App(name, broker='kafka_server://localhost:9092', web_port=int(portx))
 
 # Define a Kafka topic
-topic = app.topic(topic)
+topic = app.topic(topic_name)
 
 # Read environment variables
 par1 = os.getenv('Par1', 'default_value1')
@@ -23,7 +23,7 @@ async def example_agent(stream):
         message = (
             f'Par1 is: {par1}\n'
             f'Par2 is: {par2}\n'
-            f'Topic is: {topic}\n'
+            f'Topic is: {topic_name}\n'
             f'Name is: {name}\n'
             f'Par4 is: {par4}\n'
             f'Port is: {portx}\n'
@@ -32,8 +32,11 @@ async def example_agent(stream):
         print(message)
         
         # Write the message to a file
-        with open('received_events.txt', 'a') as file:
-            file.write(message)
+        try:
+            with open('received_events.txt', 'a') as file:
+                file.write(message)
+        except Exception as e:
+            print(f"Failed to write to file: {e}")
 
 if __name__ == '__main__':
     app.main()

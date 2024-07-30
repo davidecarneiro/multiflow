@@ -10,6 +10,7 @@ function EditInstance() {
     const [description, setDescription] = useState('');
     const [port, setPort] = useState('');
     const [portError, setPortError] = useState('');
+    const [nameError, setNameError] = useState('');
     const [instanceCustomFields, setInstanceCustomFields] = useState([]);
     const [loading, setLoading] = useState(true);
     const [appId, setAppId] = useState('');
@@ -58,30 +59,39 @@ function EditInstance() {
     // Handle form submission to update the instance
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setPortError('');
+        setNameError('');
+
+        // Validate port before submitting
+        if (dockerPorts.includes(parseInt(port))) {
+            setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+            return;
+        }
+
+        // Check if the port is already in use by another instance
+        const response = await axios.get(`http://localhost:3001/instances`);
+        const instances = response.data;
+        const existingInstance = instances.find(inst => inst.port === parseInt(port) && inst._id !== id);
+
+        if (existingInstance) {
+            setPortError('The entered Port is already in use. Please choose a different one.');
+            return;
+        }
+
+        // Check if the name contains spaces
+        if (/\s/.test(name)) {
+            setNameError('Instance name should not contain spaces.');
+            return;
+        }
+
+        const postData = {
+            name,
+            description,
+            port: parseInt(port), // Convert port to number
+            customFields: instanceCustomFields
+        };
+
         try {
-            // Validate port before submitting
-            if (dockerPorts.includes(parseInt(port))) {
-                setPortError('The entered Port is reserved for Docker. Please choose a different one.');
-                return;
-            }
-
-            // Check if the port is already in use by another instance
-            const response = await axios.get(`http://localhost:3001/instances`);
-            const instances = response.data;
-            const existingInstance = instances.find(inst => inst.port === parseInt(port) && inst._id !== id);
-
-            if (existingInstance) {
-                setPortError('The entered Port is already in use. Please choose a different one.');
-                return;
-            }
-
-            const postData = {
-                name,
-                description,
-                port: parseInt(port), // Convert port to number
-                customFields: instanceCustomFields
-            };
-
             await axios.put(`http://localhost:3001/instances/${id}`, postData);
 
             // Redirect the user to the instance details page after updating
@@ -202,11 +212,33 @@ function EditInstance() {
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
                                 <label htmlFor="name" className="form-label">Instance Name</label>
-                                <input type="text" className="form-control" id="name" placeholder='Enter the instance name' value={name} onChange={(e) => setName(e.target.value)} required />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    id="name"
+                                    placeholder='Enter the instance name'
+                                    value={name}
+                                    onChange={(e) => {
+                                        setName(e.target.value);
+                                        if (/\s/.test(e.target.value)) {
+                                            setNameError('Instance name should not contain spaces.');
+                                        } else {
+                                            setNameError('');
+                                        }
+                                    }}
+                                    required
+                                />
+                                {nameError && <small className="text-danger">{nameError}</small>}
                             </div>
                             <div className="mb-3">
                                 <label htmlFor="description" className="form-label">Instance Description</label>
-                                <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
+                                <textarea
+                                    className="form-control"
+                                    id="description"
+                                    placeholder='Enter the description'
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                ></textarea>
                             </div>
                             {/* Instance Port */}
                             <div className="col-3 mb-3">

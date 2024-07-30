@@ -124,3 +124,4 @@ app/react-app/node_modules/.cache/default-development/10.pack
 app/react-app/node_modules/.cache/default-development/11.pack
 app/react-app/node_modules/.cache/default-development/index.pack
 app/react-app/node_modules/.cache/default-development/index.pack.old
+grafana/data/grafana.db
