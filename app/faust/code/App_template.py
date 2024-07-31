@@ -3,7 +3,7 @@ import os
 
 # Fetch required fields from environment variables. 
 # These fields are mandatory and should be provided by the instance.
-InstanceName = os.getenv('InstanceName', 'InstanceName')  # Name of the instance, defaults to 'InstanceName'
+InstanceName = os.getenv('Name', 'InstanceName')  # Name of the instance, defaults to 'InstanceName'
 InstancePort = os.getenv('Port', '6066')  # Port number for the instance, defaults to 6066
 
 # Fetch custom parameters from environment variables.
