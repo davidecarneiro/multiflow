@@ -13,7 +13,7 @@ function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
-  
+
   // Get all projects
   useEffect(() => {
     fetchProjects();
@@ -294,19 +294,21 @@ function Projects() {
                             </div>
                           </div>
                         </div>
-                        {/* Progress bar and Project status button */}
-                        <div className='col-md-6'>
-                          <div className='d-flex align-items-center justify-content-center w-100'>
-                            <ProgressBar
-                              now={projectPercentages[project._id] || 0}
-                              label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
-                              style={{ width: '80%', height: '20px' }}
-                            />
-                            <div className='col-md-2 d-flex align-items-center justify-content-end'>
-                              <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                        {/* Conditional rendering for Progress bar and Project status button */}
+                        {project.streams.length > 0 && (
+                          <div className='col-md-6'>
+                            <div className='d-flex align-items-center justify-content-center w-100'>
+                              <ProgressBar
+                                now={projectPercentages[project._id] || 0}
+                                label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                                style={{ width: '80%', height: '20px' }}
+                              />
+                              <div className='col-md-2 d-flex align-items-center justify-content-end'>
+                                <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       {/* Project description */}
                       {expandedProject === project._id && (
