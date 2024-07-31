@@ -253,21 +253,27 @@ function ProjectDetails() {
                 <h6>{project.description ? project.description : "This project has no description."}</h6>
 
                 {/* Project status */}
-                <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
-                <div className='card mt-2 col-md-12' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                    <div className='card-body d-flex align-items-center'>
-                        <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
-                        <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
-                        {/* Progress bar for project completion */}
-                        <div className='ms-auto' style={{ width: '60%' }}>
-                            <ProgressBar
-                                now={projectPercentages[project._id] || 0}
-                                label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
-                                style={{ width: '100%', height: '20px' }}
-                            />
+                {project.streams.length === 0 ? (
+                    <></> // No content to show if there are no streams related
+                ) : (
+                    <> {/* Show if there are streams related */}
+                        <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
+                        <div className='card mt-2 col-md-12' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                            <div className='card-body d-flex align-items-center'>
+                                <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer' }} />
+                                <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
+                                {/* Progress bar for project completion */}
+                                <div className='ms-auto' style={{ width: '60%' }}>
+                                    <ProgressBar
+                                        now={projectPercentages[project._id] || 0}
+                                        label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
+                                        style={{ width: '100%', height: '20px' }}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                )}
 
                 {/* Streams list */}
                 <div className='col-12 mt-3'>
