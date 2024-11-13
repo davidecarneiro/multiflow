@@ -125,6 +125,25 @@ services:
     volumes:
       - ./app/ws:/usr/src/app
       - ./datasets:/usr/src/app/datasets
+  
+  influxdb:
+    image: influxdb:2.0
+    container_name: influxdb_server
+    networks:
+      - broker-kafka
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123456
+      - DOCKER_INFLUXDB_INIT_ORG=multiflow
+      - DOCKER_INFLUXDB_INIT_BUCKET=faust_app
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=admin
+      - DOCKER_INFLUXDB_INIT_HOST=influxdb
+      - DOCKER_INFLUXDB_INIT_RETENTION=2d
+    ports:
+      - "8086:8086"
+    # volumes: (not storing data for now)
+    #   - ./influxdb/data:/var/lib/influxdb
 
 networks: 
   broker-kafka:

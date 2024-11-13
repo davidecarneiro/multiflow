@@ -39,15 +39,8 @@ RUN apt-get update && apt-get install -y librdkafka-dev
 # Install MLflow
 RUN pip install mlflow
 
-# Install other necessary libraries
-RUN pip install scikit-learn
-RUN pip install confluent-kafka
-RUN pip install pymongo
-RUN pip install pandas
-RUN pip install joblib
-RUN pip install faust
-RUN pip install flask
-RUN pip install flask-cors
+# Install other necessary libraries (in-line because it reduces image size and also help ensure dependencies are installed in the correct order)
+RUN pip install mlflow scikit-learn confluent-kafka pymongo pandas joblib faust flask==2.0.3 flask-cors influxdb-client werkzeug==2.0.3
 
 #######
 # Set the working directory
