@@ -74,3 +74,4 @@ __*/
 
 # Ignore any files or folders prefixed with 'PRIVATE', used for private or local development files
 PRIVATE*
+.DS_Store
