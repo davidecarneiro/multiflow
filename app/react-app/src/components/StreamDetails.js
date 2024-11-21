@@ -374,7 +374,7 @@ function StreamDetails() {
                 )}
 
                 {/* Stream Edit and Delete Buttons */}
-                <div className="d-flex justify-content-end">
+                <div className="d-flex justify-content-end mb-4">
                     <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}><FontAwesomeIcon icon={faPenToSquare} /> Edit</button>
                     <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}><FontAwesomeIcon icon={faTrash} /> Delete</button>
                 </div>
