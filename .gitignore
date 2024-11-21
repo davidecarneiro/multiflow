@@ -74,4 +74,9 @@ __*/
 
 # Ignore any files or folders prefixed with 'PRIVATE', used for private or local development files
 PRIVATE*
+
+# Ignore any "DS_Store" files
 .DS_Store
+
+# Ignore "code" folder inside faust
+faust/code/
