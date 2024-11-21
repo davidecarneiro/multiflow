@@ -10,15 +10,19 @@ function AddInstance() {
     const [portError, setPortError] = useState('');
     const [nameError, setNameError] = useState('');  // State variable for name error
     const [customFields, setCustomFields] = useState([]);
+    const [streams, setStreams] = useState([]); // State for streams data
+    const [streamTopics, setStreamTopics] = useState([]); // State for storing stream topics
+    const [selectedStreamTopic, setSelectedStreamTopic] = useState(''); // State for selected stream topic    
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const appId = queryParams.get('appId');
 
     // Docker ports that are not allowed to being used
-    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017];
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017, 8036];
 
-    // Fetch the app details and custom fields when the component mounts
+    // Fetch the app details and stream topics
     useEffect(() => {
+        // Fetch the app details and custom fields when the component mounts
         const fetchAppDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${appId}`);
@@ -29,7 +33,22 @@ function AddInstance() {
             }
         };
 
+        // Fetch all streams and extract topics
+        const fetchStreams = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/streams');
+                const streams = response.data.map(stream => ({
+                    id: stream._id,
+                    topic: stream.topic
+                }));
+                setStreams(streams); // Save only the id and topic
+            } catch (error) {
+                console.error('Error fetching streams:', error);
+            }
+        };
+
         fetchAppDetails();
+        fetchStreams();
     }, [appId]);
 
     // Handle form submission to create a new instance
@@ -38,17 +57,21 @@ function AddInstance() {
         setPortError('');
         setNameError('');
 
-        // Check if the port is one of the Docker ports
+        // Checking if the port is one of the Docker ports
         if (dockerPorts.includes(Number(port))) {
             setPortError('The entered Port is reserved for Docker. Please choose a different one.');
             return;
         }
 
-        // Check if the name contains spaces
+        // Checking if the name contains spaces
         if (/\s/.test(name)) {
             setNameError('Instance name should not contain spaces.');
             return;
         }
+
+        // Getting selected stream's topic name based on the selected streamTopicId
+        const selectedStream = streams.find(stream => stream.id === selectedStreamTopic);
+        const streamTopic = selectedStream ? selectedStream.topic : '';
 
         try {
             const postData = {
@@ -56,6 +79,8 @@ function AddInstance() {
                 name,
                 description,
                 port,
+                streamTopicId: selectedStreamTopic, // Stream topic ID
+                streamTopic: streamTopic, // Stream topic name (for Faust app)
                 customFields: customFields.map(field => ({
                     customFieldId: field._id,
                     value: field.value
@@ -65,7 +90,7 @@ function AddInstance() {
             const response = await axios.post(`http://localhost:3001/instances`, postData);
             console.log('Instance added successfully:', response.data); // Debug: Log success message
 
-            // Redirect the user to the instances page after adding the instance
+            // Redirecting the user to the instances page after adding the instance
             navigate(`/apps/${appId}`);
         } catch (error) {
             if (error.response && error.response.data.message === 'Port is already in use') {
@@ -170,7 +195,7 @@ function AddInstance() {
                 <h1 className='page-title'>Add new instance</h1>
             </div>
             {/* Form */}
-            <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
+            <div className='panel-content mt-2 mb-4' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
                 <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
@@ -216,6 +241,21 @@ function AddInstance() {
                                     required
                                 />
                                 {portError && <small className="text-danger">{portError}</small>}
+                            </div>
+                            {/* Stream Topic dropdown */}
+                            <div className="col-4 mb-3">
+                                <label htmlFor="streamTopic" className="form-label">Stream Topic</label>
+                                <select
+                                    id="streamTopic"
+                                    className="form-select"
+                                    value={selectedStreamTopic}
+                                    onChange={(e) => setSelectedStreamTopic(e.target.value)}
+                                    required>
+                                    <option value="" disabled>Select a stream topic</option>
+                                    {streams.map((stream) => (
+                                        <option key={stream.id} value={stream.id}>{stream.topic}</option>
+                                    ))}
+                                </select>
                             </div>
                             {/* Custom Fields */}
                             <div className="mb-3">

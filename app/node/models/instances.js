@@ -11,7 +11,8 @@ const instanceSchema = new mongoose.Schema({
     dateLastStarted: { type: Date },
     status: { type: Boolean, required: true, default: false },
     dateUpdated: Date,
-    streamTopic: String, // Stream associated to the instance
+    streamTopicId: String, // Stream ID associated to the instance
+    streamTopic: String, // Stream topic associated to the instance
     customFields: [{
         customFieldId: { type: String, required: true },
         value: { type: mongoose.Schema.Types.Mixed, required: false, default: null }

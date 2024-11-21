@@ -61,7 +61,7 @@ router.get('/:id', async (req, res) => {
 // Endpoint to create a new Instance
 router.post('/', async (req, res) => {
     console.log("Creating a new instance.");
-    const { name, description, appId, port, customFields, streamTopic } = req.body;
+    const { name, description, appId, port, customFields, streamTopic, streamTopicId } = req.body;
     try {
         // Check if the port is already in use
         const existingInstance = await Instance.findOne({ port });
@@ -69,9 +69,9 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: "Port is already in use" });
         }
 
-        // Validate required field: streamTopic
-        if (!streamTopic) {
-            return res.status(400).json({ message: "streamTopic is required" });
+        // Validate required fields: streamTopic and streamTopicId
+        if (!streamTopic || !streamTopicId) {
+            return res.status(400).json({ message: "streamTopic and streamTopicId are required" });
         }
 
         // Fetch the app to validate customFieldIds
@@ -95,6 +95,7 @@ router.post('/', async (req, res) => {
             appId,
             port,
             streamTopic,
+            streamTopicId,
             customFields: customFields.map(field => ({
                 customFieldId: field.customFieldId,
                 value: field.value
@@ -125,7 +126,7 @@ router.post('/', async (req, res) => {
 // Endpoint to update an Instance by ID
 router.put('/:id', async (req, res) => {
     console.log(`Updating instance ${req.params.id}.`);
-    const { name, description, customFields, status, port, streamTopic } = req.body;
+    const { name, description, customFields, status, port, streamTopic, streamTopicId } = req.body;
     try {
         const updatedInstance = await Instance.findById(req.params.id);
         if (!updatedInstance) {
@@ -140,9 +141,9 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        // Validate required field: streamTopic
-        if (!streamTopic) {
-            return res.status(400).json({ message: "streamTopic is required" });
+        // Validate required fields: streamTopic and streamTopicId
+        if (!streamTopic || !streamTopicId) {
+            return res.status(400).json({ message: "streamTopic and streamTopicId are required" });
         }
 
         // Fetch the app to validate customFieldIds
@@ -166,6 +167,7 @@ router.put('/:id', async (req, res) => {
         if (status !== undefined) updatedInstance.status = status;
         if (port) updatedInstance.port = port; // Update the port
         if (streamTopic) updatedInstance.streamTopic = streamTopic; // Update streamTopic
+        if (streamTopicId) updatedInstance.streamTopicId = streamTopicId; // Update streamTopicId
         updatedInstance.dateUpdated = Date.now();
 
         const savedInstance = await updatedInstance.save();
