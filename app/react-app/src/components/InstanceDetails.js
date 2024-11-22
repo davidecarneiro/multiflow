@@ -13,6 +13,7 @@ function InstanceDetails() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [copiedApp, setCopiedApp] = useState(false);
+    const [copiedStream, setCopiedStream] = useState(false);
 
     // Fetch instance details when the component mounts
     useEffect(() => {
@@ -107,6 +108,15 @@ function InstanceDetails() {
         setCopiedApp(true);
         setTimeout(() => {
             setCopiedApp(false);
+        }, 1000); // Hide the confirmation message after 1 second
+    };
+
+    // Function to copy stream ID to clipboard and show confirmation message
+    const copyStreamId = () => {
+        navigator.clipboard.writeText(instance.streamTopicId);
+        setCopiedStream(true);
+        setTimeout(() => {
+            setCopiedStream(false);
         }, 1000); // Hide the confirmation message after 1 second
     };
 
@@ -218,6 +228,28 @@ function InstanceDetails() {
                 </div>
             </div>
 
+            {/* Stream Topic */}
+            {app && (
+                <div className='mt-3'>
+                    <h5 style={{ fontWeight: '650' }}>Stream Topic</h5>
+                    <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                        <div className='card-body'>
+                            <div onClick={() => navigate(`/streams/${instance.streamTopicId}`)}
+                                style={{ cursor: 'pointer', textDecoration: 'none' }}
+                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                                {instance.streamTopic}
+                            </div>
+                            <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyStreamId}>
+                                <FontAwesomeIcon icon={faCube} />
+                                <span className='ms-1' style={{ cursor: 'pointer' }}>Stream Id: {instance.streamTopicId}</span>
+                                {copiedStream && <span style={{ marginLeft: '5px', color: 'green' }}>Stream ID Copied!</span>}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Configuration */}
             <h5 className='mt-3' style={{ fontWeight: '650' }}>Configuration</h5>
             {app && app.customFields && app.customFields.length > 0 ? (
@@ -287,7 +319,7 @@ function InstanceDetails() {
             )}
 
             {/* Buttons for Edit and Delete */}
-            <div className="d-flex justify-content-end">
+            <div className="d-flex justify-content-end mb-4">
                 <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}><FontAwesomeIcon icon={faPenToSquare} /> Edit</button>
                 <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}><FontAwesomeIcon icon={faTrash} /> Delete</button>
             </div>

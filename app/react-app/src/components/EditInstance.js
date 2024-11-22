@@ -12,9 +12,13 @@ function EditInstance() {
     const [portError, setPortError] = useState('');
     const [nameError, setNameError] = useState('');
     const [instanceCustomFields, setInstanceCustomFields] = useState([]);
+    const [streams, setStreams] = useState([]); // Store available streams
+    const [streamTopic, setStreamTopic] = useState(''); // Store selected stream topic (topic string)
+    const [streamTopicId, setStreamTopicId] = useState(''); // Store selected stream topic (ID)
     const [loading, setLoading] = useState(true);
     const [appId, setAppId] = useState('');
-    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017];
+
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017, 8036];
 
     // Fetch instance details when the component mounts
     useEffect(() => {
@@ -26,10 +30,16 @@ function EditInstance() {
                 setAppId(instanceData.appId);
                 setDescription(instanceData.description);
                 setPort(instanceData.port);
+
+                // Set streamTopic to the correct value or fallback to an empty string if not found
+                const existingStream = streams.find(stream => stream.topic === instanceData.streamTopic);
+                setStreamTopic(existingStream ? instanceData.streamTopic : '');
+
                 setInstanceCustomFields(instanceData.customFields.map(field => ({
                     ...field,
                     value: field.value || ''
                 })));
+
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching instance details:', error);
@@ -38,7 +48,25 @@ function EditInstance() {
         };
 
         fetchInstanceDetails();
-    }, [id]);
+    }, [id, streams]);
+
+    // Fetch the list of available streams
+    useEffect(() => {
+        const fetchStreams = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/streams');
+                const streams = response.data.map(stream => ({
+                    id: stream._id,
+                    topic: stream.topic
+                }));
+                setStreams(streams); // Save only the id and topic
+            } catch (error) {
+                console.error('Error fetching streams:', error);
+            }
+        };
+
+        fetchStreams();
+    }, []);
 
     // Fetch app details when instance is fetched
     useEffect(() => {
@@ -84,10 +112,13 @@ function EditInstance() {
             return;
         }
 
+        // Prepare data for submission
         const postData = {
             name,
             description,
-            port: parseInt(port), // Convert port to number
+            port: parseInt(port),
+            streamTopicId, // Stream topic ID
+            streamTopic,   // Stream topic name (for Faust app)
             customFields: instanceCustomFields
         };
 
@@ -98,6 +129,23 @@ function EditInstance() {
             navigate(`/instances/${id}`);
         } catch (error) {
             console.error('Error updating instance:', error);
+        }
+    };
+
+    // Handle to update the streamTopic state when the user selects a new value
+    const handleStreamChange = (e) => {
+        const selectedStreamTopic = e.target.value; // Topic string
+
+        // Find the stream ID based on the selected topic
+        const selectedStream = streams.find(stream => stream.topic === selectedStreamTopic);
+
+        if (selectedStream) {
+            setStreamTopic(selectedStreamTopic); // Set the topic name
+            setStreamTopicId(selectedStream.id); // Set the corresponding stream ID
+        } else {
+            // If the selected topic is not found, reset the stream topic and ID
+            setStreamTopic('');
+            setStreamTopicId('');
         }
     };
 
@@ -206,7 +254,7 @@ function EditInstance() {
             </div>
 
             {/* Form */}
-            <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
+            <div className='panel-content mt-2 mb-4' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
                 <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
@@ -257,7 +305,24 @@ function EditInstance() {
                                 />
                                 {portError && <div className="invalid-feedback">{portError}</div>}
                             </div>
-
+                            {/* Stream Topic dropdown */}
+                            <div className="col-4 mb-3">
+                                <label htmlFor="streamTopic" className="form-label">Select Stream Topic</label>
+                                <select
+                                    id="streamTopic"
+                                    className="form-select"
+                                    value={streamTopic || ''} // Default to empty if streamTopic doesn't exist
+                                    onChange={handleStreamChange}
+                                    required
+                                >
+                                    <option value="" disabled>Select a stream topic</option>
+                                    {streams.map((stream) => (
+                                        <option key={stream.id} value={stream.topic}>
+                                            {stream.topic}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {/* Custom Fields */}
                             <div className="mb-3">
                                 <label className="form-label">Custom Fields</label>

@@ -60,8 +60,8 @@ function AddDatasource() {
             </div>
 
             {/* Form */}
-            <div className='panel-content mt-2' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
-                <div className='container ps-4 pe-4 pt-3 pb-4'>
+            <div className='panel-content mt-2 mb-4' style={{ backgroundColor: '#E6E8E6', borderRadius: '8px' }}>
+                <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
