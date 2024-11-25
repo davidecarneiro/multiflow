@@ -13,6 +13,9 @@ function EditStream() {
     const [playbackConfigValue, setPlaybackConfigValue] = useState('');
     const [dataSourceId, setDataSourceId] = useState('');
     const [dataSources, setDataSources] = useState([]);
+    const [existingTopics, setExistingTopics] = useState([]);
+    const [currentTopic, setCurrentTopic] = useState('');
+    const [isDuplicate, setIsDuplicate] = useState(false);
     const [files, setFiles] = useState([]);
 
     // Fetching stream details and related data on component mount
@@ -22,6 +25,7 @@ function EditStream() {
                 const response = await axios.get(`http://localhost:3001/streams/${id}`);
                 const { topic, description, dataSourceType, dataSourceId, connectionString, filePath, playbackConfigType, linesPerSecond, allInSeconds } = response.data;
                 setTopic(topic);
+                setCurrentTopic(topic.toLowerCase());
                 setDescription(description);
                 setDataSourceType(dataSourceType);
                 setDataSourceId(dataSourceId);
@@ -64,6 +68,21 @@ function EditStream() {
         fetchData();
     }, [id]);
 
+    // Fetch existing stream topics
+    useEffect(() => {
+        const fetchStreamTopics = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/streams/topics');
+                const topics = Array.isArray(response.data) ? response.data : [];
+                setExistingTopics(topics.map(topic => topic.toLowerCase()));
+            } catch (error) {
+                console.error('Error fetching stream topics:', error);
+            }
+        };
+
+        fetchStreamTopics();
+    }, []);
+
     // Function to get the list of datasets in datasets folder
     const fetchFiles = async () => {
         try {
@@ -81,18 +100,33 @@ function EditStream() {
         setAdditionalField(e.target.value);
     };
 
+    const handleTopicChange = (e) => {
+        const newTopic = e.target.value.toLowerCase(); // Convert user input to lowercase
+        setTopic(e.target.value); // Keep the actual input value for UI display
+    
+        // Exclude the current topic from the validation
+        const filteredTopics = existingTopics.filter(topic => topic !== currentTopic);
+    
+        // Check if the new topic matches any of the remaining topics
+        if (filteredTopics.includes(newTopic)) {
+            setIsDuplicate(true);
+        } else {
+            setIsDuplicate(false);
+        }
+    };    
+
     // Function to handle submit and update the stream
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            let postData = { 
-                topic, 
-                description, 
-                dataSourceType, 
-                dataSourceId: additionalField, 
+            let postData = {
+                topic,
+                description,
+                dataSourceType,
+                dataSourceId: additionalField,
                 playbackConfigType,
             };
-    
+
             // Include playbackConfigValue only if playbackConfigType is linesPerSecond or allInSeconds
             if (playbackConfigType === 'linesPerSecond') {
                 postData.linesPerSecond = parseFloat(playbackConfigValue);
@@ -101,7 +135,7 @@ function EditStream() {
             } else if (playbackConfigType === 'realTime') {
                 postData.realTime = true;
             }
-    
+
             if (dataSourceType === 'SQL') {
                 postData.connectionString = additionalField;
             } else if (dataSourceType === 'SavedDataSource') {
@@ -109,14 +143,13 @@ function EditStream() {
             } else if (dataSourceType === 'File') {
                 postData.filePath = additionalField;
             }
-    
+
             await axios.put(`http://localhost:3001/streams/${id}`, postData);
             navigate(`/streams/${id}`);
         } catch (error) {
             console.error('Error updating stream:', error);
         }
     };
-    
 
     const handleCancel = () => {
         navigate(`/streams/${id}`);
@@ -132,14 +165,22 @@ function EditStream() {
                 <div className='container-fluid ps-4 pe-4 pt-3 pb-4'>
                     <div className='col-12'>
                         <form onSubmit={handleSubmit}>
+                            {/* Stream Topic */}
                             <div className="mb-3">
                                 <label htmlFor="topic" className="form-label">Stream Topic</label>
-                                <input type="text" className="form-control" id="topic" placeholder='Enter the stream topic' value={topic} onChange={(e) => setTopic(e.target.value)} />
+                                <input type="text" className="form-control" id="topic" placeholder="Enter the stream topic" value={topic} onChange={handleTopicChange} />
+                                {isDuplicate && (
+                                    <small className="text-danger mt-1">
+                                        A stream with this topic already exists. Please choose a different name.
+                                    </small>
+                                )}
                             </div>
+                            {/* Stream Description */}
                             <div className="mb-3">
                                 <label htmlFor="description" className="form-label">Stream Description</label>
                                 <textarea className="form-control" id="description" placeholder='Enter the description' value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
                             </div>
+                            {/* Data Source Type DropDown Menu */}
                             <div className='d-flex justify-content-start align-items-center'>
                                 <div className="mb-3 col-3 me-4">
                                     <label htmlFor="dataSourceType" className="form-label">Data Source Type</label>
@@ -205,7 +246,7 @@ function EditStream() {
                             </div>
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Update</button>
+                                <button type="submit" className="btn btn-primary" disabled={isDuplicate || !topic.trim() || !existingTopics.length}>Update</button>
                             </div>
                         </form>
                     </div>
