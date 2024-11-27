@@ -243,9 +243,10 @@ router.post('/start/:id', async (req, res) => {
 
         // Create the body object for the Flask API call
         const body = {
-            command: "Name=" + instance.name + " Port=" + instance.port + " " + command,
+            command: "Name=" + instance.name + " Port=" + instance.port + " " + " StreamTopic=" + instance.streamTopic + " " + command,
             instanceId: instance._id,
-            instanceName: instance.name
+            instanceName: instance.name,
+            streamTopic: instance.streamTopic
         };
 
         console.log(body);

@@ -58,6 +58,20 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get all stream topics
+router.get('/topics', async (req, res) => {
+    try {
+        // Fetching all stream topics from the Streams model
+        const topics = await Streams.find({}, 'topic').lean(); // Fixed model name
+        console.log('Fetched topics:', topics); // Debugging output
+        res.json(topics.map(stream => stream.topic?.toLowerCase())); // Normalized to lowercase
+    } catch (error) {
+        console.error('Error fetching stream topics:', error.message, error.stack); // Improved logging
+        res.status(500).json({ error: 'Failed to fetch stream topics' });
+    }
+});
+
+
 // Endpoint to get a stream by ID
 router.get('/:id', async (req, res) => {
     try {

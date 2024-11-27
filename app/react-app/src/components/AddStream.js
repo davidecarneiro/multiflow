@@ -13,10 +13,27 @@ function AddStream() {
     const [playbackConfigValue, setPlaybackConfigValue] = useState('');
     const [dataSourceId, setDataSourceId] = useState('');
     const [dataSources, setDataSources] = useState([]);
+    const [existingTopics, setExistingTopics] = useState([]);
+    const [isDuplicate, setIsDuplicate] = useState(false);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const projectId = queryParams.get('projectId');
     const [files, setFiles] = useState([]);
+
+    // Fetch existing stream topics
+    useEffect(() => {
+        const fetchStreamTopics = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/streams/topics');
+                const topics = Array.isArray(response.data) ? response.data : [];
+                setExistingTopics(topics.map(topic => topic.toLowerCase()));
+            } catch (error) {
+                console.error('Error fetching stream topics:', error);
+            }
+        };
+
+        fetchStreamTopics();
+    }, []);
 
     // Function to get the Saved Data Sources
     useEffect(() => {
@@ -54,6 +71,19 @@ function AddStream() {
         const selectedDataSourceId = e.target.value;
         setDataSourceId(selectedDataSourceId);
         setAdditionalField(selectedDataSourceId);
+    };
+
+    // Validate topic uniqueness as user types
+    const handleTopicChange = (e) => {
+        const newTopic = e.target.value;
+        setTopic(newTopic);
+    
+        // Check if the topic already exists
+        if (existingTopics.includes(newTopic.toLowerCase())) {
+            setIsDuplicate(true);
+        } else {
+            setIsDuplicate(false);
+        }
     };
 
     // Function that handles the create stream endpoint
@@ -113,7 +143,12 @@ function AddStream() {
                             {/* Stream Topic */}
                             <div className="mb-3">
                                 <label htmlFor="topic" className="form-label">Stream Topic</label>
-                                <input type="text" className="form-control" id="topic" placeholder='Enter the stream topic' value={topic} onChange={(e) => setTopic(e.target.value)} />
+                                <input type="text" className="form-control" id="topic" placeholder="Enter the stream topic" value={topic} onChange={handleTopicChange} />
+                                {isDuplicate && (
+                                    <small className="text-danger mt-1">
+                                        A stream with this topic already exists. Please choose a different name.
+                                    </small>
+                                )}
                             </div>
                             {/* Stream Description */}
                             <div className="mb-3">
@@ -183,7 +218,7 @@ function AddStream() {
                             {/* Cancel and Confirm Btns */}
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} disabled={isDuplicate || !topic.trim() || !existingTopics.length}>Create</button>
                             </div>
                         </form>
                     </div>
