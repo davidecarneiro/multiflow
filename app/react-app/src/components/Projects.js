@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSearch, faChevronDown, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSearch, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProgressBar } from 'react-bootstrap';
 import { ProgressContext } from './ProgressContext';
@@ -246,6 +246,13 @@ function Projects() {
     navigate('/add-project'); // Navigate to add project page
   };
 
+  // Styles for animations
+  const styles = {
+    chevron: (isExpanded) => ({
+      transition: 'transform 0.3s ease',
+      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+    })
+  };
 
   return (
     <div className='container-fluid'>
@@ -291,12 +298,8 @@ function Projects() {
                           <div className="d-flex align-items-center">
                             <FontAwesomeIcon
                               onClick={() => toggleProjectDescription(project._id)}
-                              style={{ cursor: "pointer" }}
-                              icon={
-                                expandedProjects.includes(project._id)
-                                  ? faChevronDown
-                                  : faChevronRight
-                              }
+                              style={styles.chevron(expandedProjects.includes(project._id))}
+                              icon={faChevronRight}
                               className="me-2"
                             />
                             <span
@@ -364,10 +367,12 @@ function Projects() {
                           </div>
                         )}
                       </div>
+                      {/* Description */}
                       {expandedProjects.includes(project._id) && (
                         <p className="mt-2 mb-1">{project.description}</p>
                       )}
                     </div>
+                    {/* Streams List */}
                     {expandedProjects.includes(project._id) && (
                       <div className="row d-flex justify-content-end">
                         <div className="col-11">
@@ -387,6 +392,7 @@ function Projects() {
                                   <div className="d-flex align-items-center">
                                     <div className="col-md-8">
                                       <div className="d-flex align-items-center">
+                                        {/* Stream Topic (with nav/routing link) */}
                                         <span
                                           className="ms-2"
                                           onClick={() => navigate(`/streams/${stream._id}`)}
@@ -403,6 +409,7 @@ function Projects() {
                                         >
                                           {stream.topic}
                                         </span>
+                                        {/* Stream Details (Last started and Date Created) */}
                                         <label
                                           className="ms-4 tiny-label"
                                           style={{
@@ -431,6 +438,7 @@ function Projects() {
                                         </label>
                                       </div>
                                     </div>
+                                    {/* Progress Bar Indicator */}
                                     {stream.playbackConfigType !== "realTime" && (
                                       <div className="col-md-4">
                                         <div className="d-flex align-items-center justify-content-end me-1 w-100">
