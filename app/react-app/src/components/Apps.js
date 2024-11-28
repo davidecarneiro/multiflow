@@ -136,6 +136,15 @@ function Apps() {
         return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
+    // Styles for animations
+    const styles = {
+        chevron: (isExpanded) => ({
+            transition: 'transform 0.3s ease',
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            cursor: 'pointer'
+        })
+    };
+
     return (
         <div className='container-fluid'>
             {/* Page header (title and btn) */}
@@ -172,8 +181,8 @@ function Apps() {
                                                     <div className="d-flex align-items-center">
                                                         <FontAwesomeIcon
                                                             onClick={() => toggleAppDescription(app._id)}
-                                                            style={{ cursor: 'pointer' }}
-                                                            icon={isAppExpanded(app._id) ? faChevronDown : faChevronRight}
+                                                            style={styles.chevron(expandedApps.includes(app._id))}
+                                                            icon={faChevronRight}
                                                             className="me-2"
                                                         />
                                                         <span

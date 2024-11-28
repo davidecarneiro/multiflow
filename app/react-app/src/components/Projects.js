@@ -251,6 +251,7 @@ function Projects() {
     chevron: (isExpanded) => ({
       transition: 'transform 0.3s ease',
       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      cursor: 'pointer'
     })
   };
 
