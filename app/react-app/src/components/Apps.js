@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 function Apps() {
     const [apps, setApps] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedApp, setExpandedApp] = useState(null);
+    const [expandedApps, setExpandedApps] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [instanceStatus, setInstanceStatus] = useState({});
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ function Apps() {
         try {
             const response = await axios.get('http://localhost:3001/apps');
             setApps(response.data);
-    
+
             // Initialize instanceStatus from the fetched data
             const initialStatus = response.data.reduce((statusMap, app) => {
                 app.instances.forEach(instance => {
@@ -30,19 +30,26 @@ function Apps() {
                 });
                 return statusMap;
             }, {});
-    
+
             setInstanceStatus(initialStatus);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching apps:', error);
             setLoading(false);
         }
-    };    
+    };
 
     // Function to toggle the expansion of app details
     const toggleAppDescription = (appId) => {
-        setExpandedApp(expandedApp === appId ? null : appId);
+        setExpandedApps((prevExpandedApps) =>
+            prevExpandedApps.includes(appId)
+                ? prevExpandedApps.filter((id) => id !== appId) // Collapse if already expanded
+                : [...prevExpandedApps, appId] // Expand the app
+        );
     };
+
+    // Determine if an app is expanded
+    const isAppExpanded = (appId) => expandedApps.includes(appId);
 
     // Function to handle the search input change
     const handleSearchChange = (e) => {
@@ -129,6 +136,15 @@ function Apps() {
         return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
+    // Styles for animations
+    const styles = {
+        chevron: (isExpanded) => ({
+            transition: 'transform 0.3s ease',
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            cursor: 'pointer'
+        })
+    };
+
     return (
         <div className='container-fluid'>
             {/* Page header (title and btn) */}
@@ -159,12 +175,16 @@ function Apps() {
                             <ul className="list-group">
                                 {apps.map(app => (
                                     <div key={app._id} className="mt-1 mb-1">
-                                        {/* App Item List */}
                                         <div className='list-group-item' style={{ backgroundColor: '#e6e8e6', borderColor: '#e6e8e6', borderRadius: '8px' }}>
                                             <div className='row align-items-center'>
                                                 <div className="col-md-9">
                                                     <div className="d-flex align-items-center">
-                                                        <FontAwesomeIcon onClick={() => toggleAppDescription(app._id)} style={{ cursor: 'pointer' }} icon={expandedApp === app._id ? faChevronDown : faChevronRight} className="me-2" />
+                                                        <FontAwesomeIcon
+                                                            onClick={() => toggleAppDescription(app._id)}
+                                                            style={styles.chevron(expandedApps.includes(app._id))}
+                                                            icon={faChevronRight}
+                                                            className="me-2"
+                                                        />
                                                         <span
                                                             className='ms-2'
                                                             onClick={() => navigate(`/apps/${app._id}`)}
@@ -173,33 +193,32 @@ function Apps() {
                                                             onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
                                                             {app.name}
                                                         </span>
-                                                        {/* App details such as 'last started' and 'created at' */}
                                                         <div className="d-flex align-items-center mt-1">
-                                                            <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last updated: {app.dateUpdated ? parseDate(app.dateUpdated) : 'Never'}</span></label>
-                                                            <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(app.dateCreated)}</label>
+                                                            <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                                <FontAwesomeIcon icon={faClock} />
+                                                                <span className='ms-1'>Last updated: {app.dateUpdated ? parseDate(app.dateUpdated) : 'Never'}</span>
+                                                            </label>
+                                                            <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                                <FontAwesomeIcon icon={faFolderPlus} />
+                                                                <span className='ms-1'>Created at: </span> {formatDate(app.dateCreated)}
+                                                            </label>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* App description */}
-                                            {expandedApp === app._id && (
+                                            {isAppExpanded(app._id) && (
                                                 <p className="mt-2 mb-1">{app.description}</p>
                                             )}
                                         </div>
-                                        {/* Instances List Associated to app (show if app is expanded) */}
-                                        {expandedApp === app._id && (
+                                        {isAppExpanded(app._id) && (
                                             <div className='row d-flex justify-content-end'>
                                                 <div className='col-11'>
-                                                    {/* Conditional rendering based on whether the app has instances */}
                                                     {app.instances.length > 0 ? (
-                                                        // Render instances if there are any associated
                                                         app.instances.map((instance, index) => (
                                                             <li key={index} className="list-group-item mt-1 mb-1" style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                                                                {/* Instance details */}
                                                                 <div className="d-flex align-items-center">
                                                                     <div className='col-md-9'>
                                                                         <div className='d-flex align-items-center'>
-                                                                            {/* Instance name */}
                                                                             <span
                                                                                 className='ms-2'
                                                                                 onClick={() => navigate(`/instances/${instance._id}`)}
@@ -208,15 +227,21 @@ function Apps() {
                                                                                 onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
                                                                                 {instance.name}
                                                                             </span>
-                                                                            {/* Instance details such as 'last started' and 'created at' */}
-                                                                            <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span></label>
-                                                                            <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(instance.dateCreated)}</label>
+                                                                            <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                                                <FontAwesomeIcon icon={faClock} />
+                                                                                <span className='ms-1'>Last started: {instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span>
+                                                                            </label>
+                                                                            <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                                                <FontAwesomeIcon icon={faFolderPlus} />
+                                                                                <span className='ms-1'>Created at: </span> {formatDate(instance.dateCreated)}
+                                                                            </label>
                                                                         </div>
                                                                     </div>
-                                                                    {/* Instance status */}
                                                                     <div className='col-md-3'>
                                                                         <div className='d-flex align-items-center justify-content-end'>
-                                                                            <label className='me-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faPassport} className='me-1'/>{instance.port}</label>
+                                                                            <label className='me-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                                                <FontAwesomeIcon icon={faPassport} className='me-1' />{instance.port}
+                                                                            </label>
                                                                             <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
                                                                                 <input
                                                                                     className="form-check-input"
@@ -232,7 +257,6 @@ function Apps() {
                                                             </li>
                                                         ))
                                                     ) : (
-                                                        // Render message if there are no instances associated
                                                         <p className="mt-2 mb-1" style={{ fontSize: '14px', color: 'gray' }}>There are no instances associated with this app yet.</p>
                                                     )}
                                                 </div>

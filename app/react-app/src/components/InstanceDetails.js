@@ -241,8 +241,7 @@ function InstanceDetails() {
                                 {instance.streamTopic}
                             </div>
                             <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyStreamId}>
-                                <FontAwesomeIcon icon={faCube} />
-                                <span className='ms-1' style={{ cursor: 'pointer' }}>Stream Id: {instance.streamTopicId}</span>
+                                <span style={{ cursor: 'pointer' }}>Stream Id: {instance.streamTopicId}</span>
                                 {copiedStream && <span style={{ marginLeft: '5px', color: 'green' }}>Stream ID Copied!</span>}
                             </span>
                         </div>

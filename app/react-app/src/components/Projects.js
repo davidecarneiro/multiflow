@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSearch, faChevronDown, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSearch, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProgressBar } from 'react-bootstrap';
 import { ProgressContext } from './ProgressContext';
@@ -9,7 +9,7 @@ import { ProgressContext } from './ProgressContext';
 function Projects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedProject, setExpandedProject] = useState(null);
+  const [expandedProjects, setExpandedProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
@@ -92,7 +92,11 @@ function Projects() {
 
   // Function to expand and collapse the project item
   const toggleProjectDescription = (projectId) => {
-    setExpandedProject(expandedProject === projectId ? null : projectId);
+    setExpandedProjects((prev) =>
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId) // Remove the project if it's already expanded
+        : [...prev, projectId]                 // Add the project if it's not expanded
+    );
   };
 
   // Function to search button and search query
@@ -242,6 +246,14 @@ function Projects() {
     navigate('/add-project'); // Navigate to add project page
   };
 
+  // Styles for animations
+  const styles = {
+    chevron: (isExpanded) => ({
+      transition: 'transform 0.3s ease',
+      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      cursor: 'pointer'
+    })
+  };
 
   return (
     <div className='container-fluid'>
@@ -271,96 +283,190 @@ function Projects() {
               <h4>There are no projects that match your search.</h4>
             ) : (
               <ul className="list-group">
-                {projects.map(project => (
-                  <div key={project._id} className="mt-1 mb-1" >
+                {projects.map((project) => (
+                  <div key={project._id} className="mt-1 mb-1">
                     {/* Project Item List */}
-                    <div className='list-group-item' style={{ backgroundColor: '#e6e8e6', borderColor: '#e6e8e6', borderRadius: '8px' }}>
-                      <div className='row align-items-center'>
+                    <div
+                      className="list-group-item"
+                      style={{
+                        backgroundColor: "#e6e8e6",
+                        borderColor: "#e6e8e6",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      <div className="row align-items-center">
                         <div className="col-md-6">
                           <div className="d-flex align-items-center">
-                            <FontAwesomeIcon onClick={() => toggleProjectDescription(project._id)} style={{ cursor: 'pointer' }} icon={expandedProject === project._id ? faChevronDown : faChevronRight} className="me-2" />
+                            <FontAwesomeIcon
+                              onClick={() => toggleProjectDescription(project._id)}
+                              style={styles.chevron(expandedProjects.includes(project._id))}
+                              icon={faChevronRight}
+                              className="me-2"
+                            />
                             <span
-                              className='ms-2'
+                              className="ms-2"
                               onClick={() => navigate(`/projects/${project._id}`)}
-                              style={{ cursor: 'pointer', textDecoration: 'none' }}
-                              onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                              onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                              style={{
+                                cursor: "pointer",
+                                textDecoration: "none",
+                              }}
+                              onMouseEnter={(e) => (e.target.style.textDecoration = "underline")}
+                              onMouseLeave={(e) => (e.target.style.textDecoration = "none")}
+                            >
                               {project.name}
                             </span>
-                            {/* Project details such as 'last started' and 'created at' */}
                             <div className="d-flex align-items-center mt-1">
-                              <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {project.dateLastStarted ? parseDate(project.dateLastStarted) : 'Never'}</span></label>
-                              <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(project.dateCreated)}</label>
+                              <label
+                                className="ms-4 tiny-label"
+                                style={{ fontSize: "10px", color: "gray" }}
+                              >
+                                <FontAwesomeIcon icon={faClock} />
+                                <span className="ms-1">
+                                  Last started:{" "}
+                                  {project.dateLastStarted
+                                    ? parseDate(project.dateLastStarted)
+                                    : "Never"}
+                                </span>
+                              </label>
+                              <label
+                                className="ms-3 tiny-label"
+                                style={{ fontSize: "10px", color: "gray" }}
+                              >
+                                <FontAwesomeIcon icon={faFolderPlus} />
+                                <span className="ms-1">Created at: </span>{" "}
+                                {formatDate(project.dateCreated)}
+                              </label>
                             </div>
                           </div>
                         </div>
-                        {/* Conditional rendering for Progress bar and Project status button */}
                         {project.streams.length > 0 && (
-                          <div className='col-md-6'>
-                            <div className='d-flex align-items-center justify-content-center w-100'>
+                          <div className="col-md-6">
+                            <div className="d-flex align-items-center justify-content-center w-100">
                               <ProgressBar
                                 now={projectPercentages[project._id] || 0}
-                                label={`${projectPercentages[project._id] ? projectPercentages[project._id].toFixed(0) : 0}%`}
-                                style={{ width: '80%', height: '20px' }}
+                                label={`${projectPercentages[project._id]
+                                  ? projectPercentages[project._id].toFixed(0)
+                                  : 0
+                                  }%`}
+                                style={{ width: "80%", height: "20px" }}
                               />
-                              <div className='col-md-2 d-flex align-items-center justify-content-end'>
-                                <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faPause : faPlay} size="2x" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }} />
+                              <div className="col-md-2 d-flex align-items-center justify-content-end">
+                                <FontAwesomeIcon
+                                  onClick={() =>
+                                    handleProjectStatus(project._id, project.status)
+                                  }
+                                  icon={project.status ? faPause : faPlay}
+                                  size="2x"
+                                  style={{
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
-                      {/* Project description */}
-                      {expandedProject === project._id && (
+                      {/* Description */}
+                      {expandedProjects.includes(project._id) && (
                         <p className="mt-2 mb-1">{project.description}</p>
                       )}
                     </div>
-                    {/* Streams List Associated to project (show if project is expanded) */}
-                    {expandedProject === project._id && (
-                      <div className='row d-flex justify-content-end'>
-                        <div className='col-11'>
-                          {/* Conditional rendering based on whether the project has streams */}
-                          {projects.find(proj => proj._id === project._id)?.streams.length > 0 ? (
-                            // Render streams if there are any associated
-                            projects.find(proj => proj._id === project._id).streams.map((stream, index) => (
-                              <li key={index} className="list-group-item mt-1 mb-1" style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
-                                {/* Stream details */}
-                                <div className="d-flex align-items-center">
-                                  <div className='col-md-8'>
-                                    <div className='d-flex align-items-center'>
-                                      {/* Stream topic */}
-                                      <span
-                                        className='ms-2'
-                                        onClick={() => navigate(`/streams/${stream._id}`)}
-                                        style={{ cursor: 'pointer', textDecoration: 'none' }}
-                                        onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                                        onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
-                                        {stream.topic}
-                                      </span>
-                                      {/* Stream details such as 'last started' and 'created at' */}
-                                      <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {stream.dateLastStarted ? parseDate(stream.dateLastStarted) : 'Never'}</span></label>
-                                      <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(stream.dateCreated)}</label>
-                                    </div>
-                                  </div>
-                                  {/* Stream status */}
-                                  {/* Conditionally render the progress bar */}
-                                  {stream.playbackConfigType !== 'realTime' && (
-                                    <div className='col-md-4'>
-                                      <div className='d-flex align-items-center justify-content-end me-1 w-100'>
-                                        <ProgressBar
-                                          now={streamPercentages[stream._id] || 0}
-                                          label={`${streamPercentages[stream._id] ? streamPercentages[stream._id].toFixed(0) : 0}%`}
-                                          style={{ width: '80%', height: '20px' }}
-                                        />
+                    {/* Streams List */}
+                    {expandedProjects.includes(project._id) && (
+                      <div className="row d-flex justify-content-end">
+                        <div className="col-11">
+                          {projects.find((proj) => proj._id === project._id)?.streams
+                            .length > 0 ? (
+                            projects
+                              .find((proj) => proj._id === project._id)
+                              .streams.map((stream, index) => (
+                                <li
+                                  key={index}
+                                  className="list-group-item mt-1 mb-1"
+                                  style={{
+                                    backgroundColor: "#F5F6F5",
+                                    borderRadius: "8px",
+                                  }}
+                                >
+                                  <div className="d-flex align-items-center">
+                                    <div className="col-md-8">
+                                      <div className="d-flex align-items-center">
+                                        {/* Stream Topic (with nav/routing link) */}
+                                        <span
+                                          className="ms-2"
+                                          onClick={() => navigate(`/streams/${stream._id}`)}
+                                          style={{
+                                            cursor: "pointer",
+                                            textDecoration: "none",
+                                          }}
+                                          onMouseEnter={(e) =>
+                                            (e.target.style.textDecoration = "underline")
+                                          }
+                                          onMouseLeave={(e) =>
+                                            (e.target.style.textDecoration = "none")
+                                          }
+                                        >
+                                          {stream.topic}
+                                        </span>
+                                        {/* Stream Details (Last started and Date Created) */}
+                                        <label
+                                          className="ms-4 tiny-label"
+                                          style={{
+                                            fontSize: "10px",
+                                            color: "gray",
+                                          }}
+                                        >
+                                          <FontAwesomeIcon icon={faClock} />
+                                          <span className="ms-1">
+                                            Last started:{" "}
+                                            {stream.dateLastStarted
+                                              ? parseDate(stream.dateLastStarted)
+                                              : "Never"}
+                                          </span>
+                                        </label>
+                                        <label
+                                          className="ms-3 tiny-label"
+                                          style={{
+                                            fontSize: "10px",
+                                            color: "gray",
+                                          }}
+                                        >
+                                          <FontAwesomeIcon icon={faFolderPlus} />
+                                          <span className="ms-1">Created at: </span>{" "}
+                                          {formatDate(stream.dateCreated)}
+                                        </label>
                                       </div>
                                     </div>
-                                  )}
-                                </div>
-                              </li>
-                            ))
+                                    {/* Progress Bar Indicator */}
+                                    {stream.playbackConfigType !== "realTime" && (
+                                      <div className="col-md-4">
+                                        <div className="d-flex align-items-center justify-content-end me-1 w-100">
+                                          <ProgressBar
+                                            now={streamPercentages[stream._id] || 0}
+                                            label={`${streamPercentages[stream._id]
+                                              ? streamPercentages[stream._id].toFixed(0)
+                                              : 0
+                                              }%`}
+                                            style={{
+                                              width: "80%",
+                                              height: "20px",
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              ))
                           ) : (
-                            // Render message if there are no streams associated
-                            <p className="mt-2 mb-1" style={{ fontSize: '14px', color: 'gray' }}>There are no streams associated with this project yet.</p>
+                            <p
+                              className="mt-2 mb-1"
+                              style={{ fontSize: "14px", color: "gray" }}
+                            >
+                              There are no streams associated with this project yet.
+                            </p>
                           )}
                         </div>
                       </div>
