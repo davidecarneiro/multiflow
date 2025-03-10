@@ -12,29 +12,64 @@ function EditInstance() {
     const [portError, setPortError] = useState('');
     const [nameError, setNameError] = useState('');
     const [instanceCustomFields, setInstanceCustomFields] = useState([]);
+    const [instanceData, setInstanceData] = useState(null);
     const [streams, setStreams] = useState([]); // Store available streams
     const [streamTopic, setStreamTopic] = useState(''); // Store selected stream topic (topic string)
     const [streamTopicId, setStreamTopicId] = useState(''); // Store selected stream topic (ID)
     const [loading, setLoading] = useState(true);
     const [appId, setAppId] = useState('');
+    const [isDuplicatePort, setIsDuplicatePort] = useState(false);
+    const [hasSpacesInName, setHasSpacesInName] = useState(false);
 
-    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017, 8036];
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3000, 3001, 8082, 3002, 27017, 8036]; // Reserved ports for Docker
 
-    // Fetch instance details when the component mounts
+    // Debounce function to limit the rate of API calls
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    };
+
+    // Function to check if the port is already in use
+    const checkPortAvailability = async (newPort) => {
+        try {
+            const response = await axios.get(`http://localhost:3001/instances`);
+            const instances = response.data;
+            const existingInstance = instances.find(inst => inst.port === parseInt(newPort) && inst._id !== id);
+
+            if (existingInstance) {
+                setPortError('The entered Port is already in use. Please choose a different one.');
+                setIsDuplicatePort(true);
+            } else {
+                setIsDuplicatePort(false);
+            }
+        } catch (error) {
+            console.error('Error checking port availability:', error);
+        }
+    };
+
+    // Debounced version of the port availability check
+    const debouncedCheckPortAvailability = debounce(checkPortAvailability, 300); // 300ms delay
+
+    // Fetching instance details when the component mounts
     useEffect(() => {
         const fetchInstanceDetails = async () => {
             try {
                 const response = await axios.get(`http://localhost:3001/instances/${id}`);
                 const instanceData = response.data;
+                setInstanceData(instanceData);
                 setName(instanceData.name);
                 setAppId(instanceData.appId);
                 setDescription(instanceData.description);
                 setPort(instanceData.port);
 
-                // Set streamTopic to the correct value or fallback to an empty string if not found
-                const existingStream = streams.find(stream => stream.topic === instanceData.streamTopic);
-                setStreamTopic(existingStream ? instanceData.streamTopic : '');
+                // Set streamTopic and streamTopicId
+                setStreamTopic(instanceData.streamTopic || '');
+                setStreamTopicId(instanceData.streamTopicId || '');
 
+                // Set custom fields with default values if empty
                 setInstanceCustomFields(instanceData.customFields.map(field => ({
                     ...field,
                     value: field.value || ''
@@ -50,7 +85,7 @@ function EditInstance() {
         fetchInstanceDetails();
     }, [id, streams]);
 
-    // Fetch the list of available streams
+    // Fetching the list of available streams
     useEffect(() => {
         const fetchStreams = async () => {
             try {
@@ -68,7 +103,7 @@ function EditInstance() {
         fetchStreams();
     }, []);
 
-    // Fetch app details when instance is fetched
+    // Fetching app details when instance is fetched
     useEffect(() => {
         const fetchAppDetails = async () => {
             try {
@@ -84,51 +119,63 @@ function EditInstance() {
         }
     }, [appId]);
 
-    // Handle form submission to update the instance
+    // Handling form submission to update the instance
     const handleSubmit = async (e) => {
         e.preventDefault();
         setPortError('');
         setNameError('');
 
-        // Validate port before submitting
+        // Validating port before submitting
         if (dockerPorts.includes(parseInt(port))) {
             setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+            setIsDuplicatePort(true); // Disable the button
             return;
         }
 
-        // Check if the port is already in use by another instance
+        // Checking if the port is already in use by another instance
         const response = await axios.get(`http://localhost:3001/instances`);
         const instances = response.data;
         const existingInstance = instances.find(inst => inst.port === parseInt(port) && inst._id !== id);
 
         if (existingInstance) {
             setPortError('The entered Port is already in use. Please choose a different one.');
+            setIsDuplicatePort(true); // Disable the button
             return;
+        } else {
+            setIsDuplicatePort(false); // Enable the button
         }
 
-        // Check if the name contains spaces
+        // Checking if the name contains spaces
         if (/\s/.test(name)) {
             setNameError('Instance name should not contain spaces.');
+            setHasSpacesInName(true); // Disable the button
             return;
+        } else {
+            setHasSpacesInName(false); // Enable the button
         }
 
-        // Prepare data for submission
+        // Preparing data for submission
         const postData = {
             name,
             description,
             port: parseInt(port),
-            streamTopicId, // Stream topic ID
-            streamTopic,   // Stream topic name (for Faust app)
+            streamTopicId: streamTopicId || instanceData.streamTopicId,
+            streamTopic: streamTopic || instanceData.streamTopic,
             customFields: instanceCustomFields
         };
+
+        console.log('Submitting data:', postData); // Log the data being submitted
 
         try {
             await axios.put(`http://localhost:3001/instances/${id}`, postData);
 
-            // Redirect the user to the instance details page after updating
+            // Redirecting the user to the instance details page after updating
             navigate(`/instances/${id}`);
         } catch (error) {
             console.error('Error updating instance:', error);
+            if (error.response) {
+                console.error('Server response:', error.response.data);
+            }
         }
     };
 
@@ -184,7 +231,7 @@ function EditInstance() {
         setInstanceCustomFields(fields);
     };
 
-    // Render input based on field type, considering both app and instance data
+    // Rendering input based on field type, considering both app and instance data
     const renderInputField = (field, index) => {
         // Find the corresponding field from app.customFields
         const appField = app.customFields.find(f => f._id === field.customFieldId);
@@ -268,6 +315,7 @@ function EditInstance() {
                                     value={name}
                                     onChange={(e) => {
                                         setName(e.target.value);
+                                        setHasSpacesInName(/\s/.test(e.target.value));
                                         if (/\s/.test(e.target.value)) {
                                             setNameError('Instance name should not contain spaces.');
                                         } else {
@@ -295,11 +343,22 @@ function EditInstance() {
                                     type="number"
                                     className={`form-control ${portError ? 'is-invalid' : ''}`}
                                     id="port"
-                                    placeholder='Enter the instance port'
+                                    placeholder="Enter the instance port"
                                     value={port}
-                                    onChange={(e) => {
-                                        setPort(e.target.value);
+                                    onChange={async (e) => {
+                                        const newPort = e.target.value;
+                                        setPort(newPort);
                                         setPortError('');
+
+                                        // Checking if the port is reserved for Docker
+                                        if (dockerPorts.includes(parseInt(newPort))) {
+                                            setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+                                            setIsDuplicatePort(true);
+                                            return;
+                                        }
+
+                                        // Debounced check for duplicate port
+                                        debouncedCheckPortAvailability(newPort);
                                     }}
                                     required
                                 />
@@ -313,8 +372,7 @@ function EditInstance() {
                                     className="form-select"
                                     value={streamTopic || ''} // Default to empty if streamTopic doesn't exist
                                     onChange={handleStreamChange}
-                                    required
-                                >
+                                    required>
                                     <option value="" disabled>Select a stream topic</option>
                                     {streams.map((stream) => (
                                         <option key={stream.id} value={stream.topic}>
@@ -370,7 +428,7 @@ function EditInstance() {
 
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Update</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} disabled={isDuplicatePort || hasSpacesInName || loading}>Update</button>
                             </div>
                         </form>
                     </div>
