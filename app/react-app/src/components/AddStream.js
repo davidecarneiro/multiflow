@@ -218,7 +218,7 @@ function AddStream() {
                             {/* Cancel and Confirm Btns */}
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} disabled={isDuplicate || !topic.trim() || !existingTopics.length}>Create</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} /* disabled={isDuplicate || !topic.trim() || !existingTopics.length} */>Create</button>
                             </div>
                         </form>
                     </div>
