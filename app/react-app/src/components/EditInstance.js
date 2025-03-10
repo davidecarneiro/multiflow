@@ -12,6 +12,7 @@ function EditInstance() {
     const [portError, setPortError] = useState('');
     const [nameError, setNameError] = useState('');
     const [instanceCustomFields, setInstanceCustomFields] = useState([]);
+    const [instanceData, setInstanceData] = useState(null);
     const [streams, setStreams] = useState([]); // Store available streams
     const [streamTopic, setStreamTopic] = useState(''); // Store selected stream topic (topic string)
     const [streamTopicId, setStreamTopicId] = useState(''); // Store selected stream topic (ID)
@@ -26,27 +27,28 @@ function EditInstance() {
             try {
                 const response = await axios.get(`http://localhost:3001/instances/${id}`);
                 const instanceData = response.data;
+                setInstanceData(instanceData); // Store the fetched data
                 setName(instanceData.name);
                 setAppId(instanceData.appId);
                 setDescription(instanceData.description);
                 setPort(instanceData.port);
-
-                // Set streamTopic to the correct value or fallback to an empty string if not found
-                const existingStream = streams.find(stream => stream.topic === instanceData.streamTopic);
-                setStreamTopic(existingStream ? instanceData.streamTopic : '');
-
+    
+                // Set streamTopic and streamTopicId
+                setStreamTopic(instanceData.streamTopic || '');
+                setStreamTopicId(instanceData.streamTopicId || '');
+    
                 setInstanceCustomFields(instanceData.customFields.map(field => ({
                     ...field,
                     value: field.value || ''
                 })));
-
+    
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching instance details:', error);
                 setLoading(false);
             }
         };
-
+    
         fetchInstanceDetails();
     }, [id, streams]);
 
@@ -89,56 +91,61 @@ function EditInstance() {
         e.preventDefault();
         setPortError('');
         setNameError('');
-
+    
         // Validate port before submitting
         if (dockerPorts.includes(parseInt(port))) {
             setPortError('The entered Port is reserved for Docker. Please choose a different one.');
             return;
         }
-
+    
         // Check if the port is already in use by another instance
         const response = await axios.get(`http://localhost:3001/instances`);
         const instances = response.data;
         const existingInstance = instances.find(inst => inst.port === parseInt(port) && inst._id !== id);
-
+    
         if (existingInstance) {
             setPortError('The entered Port is already in use. Please choose a different one.');
             return;
         }
-
+    
         // Check if the name contains spaces
         if (/\s/.test(name)) {
             setNameError('Instance name should not contain spaces.');
             return;
         }
-
+    
         // Prepare data for submission
         const postData = {
             name,
             description,
             port: parseInt(port),
-            streamTopicId, // Stream topic ID
-            streamTopic,   // Stream topic name (for Faust app)
+            streamTopicId: streamTopicId || instanceData.streamTopicId, // Use current state or pre-populated value
+            streamTopic: streamTopic || instanceData.streamTopic,     // Use current state or pre-populated value
             customFields: instanceCustomFields
         };
-
+    
+        console.log('Submitting data:', postData); // Log the data being submitted
+    
         try {
             await axios.put(`http://localhost:3001/instances/${id}`, postData);
-
+    
             // Redirect the user to the instance details page after updating
             navigate(`/instances/${id}`);
         } catch (error) {
             console.error('Error updating instance:', error);
+            if (error.response) {
+                console.error('Server response:', error.response.data);
+            }
         }
     };
 
     // Handle to update the streamTopic state when the user selects a new value
     const handleStreamChange = (e) => {
         const selectedStreamTopic = e.target.value; // Topic string
-
+    
         // Find the stream ID based on the selected topic
         const selectedStream = streams.find(stream => stream.topic === selectedStreamTopic);
-
+    
         if (selectedStream) {
             setStreamTopic(selectedStreamTopic); // Set the topic name
             setStreamTopicId(selectedStream.id); // Set the corresponding stream ID
@@ -313,8 +320,7 @@ function EditInstance() {
                                     className="form-select"
                                     value={streamTopic || ''} // Default to empty if streamTopic doesn't exist
                                     onChange={handleStreamChange}
-                                    required
-                                >
+                                    required>
                                     <option value="" disabled>Select a stream topic</option>
                                     {streams.map((stream) => (
                                         <option key={stream.id} value={stream.topic}>
