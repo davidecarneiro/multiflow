@@ -18,7 +18,7 @@ function AddInstance() {
     const appId = queryParams.get('appId');
 
     // Docker ports that are not allowed to being used
-    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3001, 8082, 3002, 27017, 8036];
+    const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3000, 3001, 8082, 3002, 27017, 8036];
 
     // Fetch the app details and stream topics
     useEffect(() => {
