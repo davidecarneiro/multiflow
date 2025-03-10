@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function AddStream() {
     const navigate = useNavigate();
     const [topic, setTopic] = useState('');
     const [description, setDescription] = useState('');
-    const [dataSourceType, setDataSourceType] = useState('');
+    const [dataSourceType, setDataSourceType] = useState('File'); // Pre-selecting "File"
     const [additionalField, setAdditionalField] = useState('');
-    const [playbackConfigType, setPlaybackConfigType] = useState('');
+    const [playbackConfigType, setPlaybackConfigType] = useState('linesPerSecond'); // Pre-selecting "LPS"
     const [playbackConfigValue, setPlaybackConfigValue] = useState('');
     const [dataSourceId, setDataSourceId] = useState('');
     const [dataSources, setDataSources] = useState([]);
     const [existingTopics, setExistingTopics] = useState([]);
     const [isDuplicate, setIsDuplicate] = useState(false);
+    const [loading, setLoading] = useState(true); // Track loading state
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const projectId = queryParams.get('projectId');
@@ -29,6 +29,8 @@ function AddStream() {
                 setExistingTopics(topics.map(topic => topic.toLowerCase()));
             } catch (error) {
                 console.error('Error fetching stream topics:', error);
+            } finally {
+                setLoading(false); // Set loading to false after fetch completes
             }
         };
 
@@ -77,7 +79,7 @@ function AddStream() {
     const handleTopicChange = (e) => {
         const newTopic = e.target.value;
         setTopic(newTopic);
-    
+
         // Check if the topic already exists
         if (existingTopics.includes(newTopic.toLowerCase())) {
             setIsDuplicate(true);
@@ -218,7 +220,7 @@ function AddStream() {
                             {/* Cancel and Confirm Btns */}
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} /* disabled={isDuplicate || !topic.trim() || !existingTopics.length} */>Create</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} disabled={isDuplicate || !topic.trim() || loading}>Create</button>
                             </div>
                         </form>
                     </div>
