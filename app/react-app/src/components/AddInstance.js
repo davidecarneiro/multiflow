@@ -11,14 +11,46 @@ function AddInstance() {
     const [nameError, setNameError] = useState('');  // State variable for name error
     const [customFields, setCustomFields] = useState([]);
     const [streams, setStreams] = useState([]); // State for streams data
-    const [streamTopics, setStreamTopics] = useState([]); // State for storing stream topics
     const [selectedStreamTopic, setSelectedStreamTopic] = useState(''); // State for selected stream topic    
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const appId = queryParams.get('appId');
+    const [isDuplicatePort, setIsDuplicatePort] = useState(false);
+    const [hasSpacesInName, setHasSpacesInName] = useState(false);
+    const [areRequiredFieldsFilled, setAreRequiredFieldsFilled] = useState(false); // State for required fields validation
 
-    // Docker ports that are not allowed to being used
+    // Docker ports that are not allowed to be used
     const dockerPorts = [5010, 6066, 9092, 8081, 19000, 9092, 3000, 3001, 8082, 3002, 27017, 8036];
+
+    // Debounce function to limit the rate of API calls
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    };
+
+    // Function to check if the port is already in use
+    const checkPortAvailability = async (newPort) => {
+        try {
+            const response = await axios.get(`http://localhost:3001/instances`);
+            const instances = response.data;
+            const existingInstance = instances.find(inst => inst.port === parseInt(newPort));
+
+            if (existingInstance) {
+                setPortError('The entered Port is already in use. Please choose a different one.');
+                setIsDuplicatePort(true);
+            } else {
+                setIsDuplicatePort(false);
+            }
+        } catch (error) {
+            console.error('Error checking port availability:', error);
+        }
+    };
+
+    // Debounced version of the port availability check
+    const debouncedCheckPortAvailability = debounce(checkPortAvailability, 300); // 300ms delay
 
     // Fetch the app details and stream topics
     useEffect(() => {
@@ -51,6 +83,12 @@ function AddInstance() {
         fetchStreams();
     }, [appId]);
 
+    // Check if all required fields are filled
+    useEffect(() => {
+        const areFieldsFilled = name.trim() !== '' && port.trim() !== '' && selectedStreamTopic.trim() !== '';
+        setAreRequiredFieldsFilled(areFieldsFilled);
+    }, [name, port, selectedStreamTopic]);
+
     // Handle form submission to create a new instance
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -60,13 +98,17 @@ function AddInstance() {
         // Checking if the port is one of the Docker ports
         if (dockerPorts.includes(Number(port))) {
             setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+            setIsDuplicatePort(true); // Disable the button
             return;
         }
 
         // Checking if the name contains spaces
         if (/\s/.test(name)) {
             setNameError('Instance name should not contain spaces.');
+            setHasSpacesInName(true); // Disable the button
             return;
+        } else {
+            setHasSpacesInName(false); // Enable the button
         }
 
         // Getting selected stream's topic name based on the selected streamTopicId
@@ -209,6 +251,7 @@ function AddInstance() {
                                     value={name}
                                     onChange={(e) => {
                                         setName(e.target.value);
+                                        setHasSpacesInName(/\s/.test(e.target.value));
                                         if (/\s/.test(e.target.value)) {
                                             setNameError('Instance name should not contain spaces.');
                                         } else {
@@ -229,15 +272,30 @@ function AddInstance() {
                                     onChange={(e) => setDescription(e.target.value)}
                                 ></textarea>
                             </div>
+                            {/* Instance Port */}
                             <div className="col-3 mb-3">
                                 <label htmlFor="port" className="form-label">Port</label>
                                 <input
                                     type="number"
-                                    className="form-control"
+                                    className={`form-control ${portError ? 'is-invalid' : ''}`}
                                     id="port"
                                     placeholder='Enter the port'
                                     value={port}
-                                    onChange={(e) => setPort(e.target.value)}
+                                    onChange={async (e) => {
+                                        const newPort = e.target.value;
+                                        setPort(newPort);
+                                        setPortError('');
+
+                                        // Checking if the port is reserved for Docker
+                                        if (dockerPorts.includes(parseInt(newPort))) {
+                                            setPortError('The entered Port is reserved for Docker. Please choose a different one.');
+                                            setIsDuplicatePort(true);
+                                            return;
+                                        }
+
+                                        // Debounced check for duplicate port
+                                        debouncedCheckPortAvailability(newPort);
+                                    }}
                                     required
                                 />
                                 {portError && <small className="text-danger">{portError}</small>}
@@ -306,7 +364,7 @@ function AddInstance() {
                             </div>
                             <div className="d-flex justify-content-end">
                                 <button type="button" className="btn btn-danger me-2" style={{ fontWeight: '500' }} onClick={handleCancel}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }}>Create</button>
+                                <button type="submit" className="btn btn-primary" style={{ fontWeight: '500' }} disabled={isDuplicatePort || hasSpacesInName || !areRequiredFieldsFilled}>Create</button>
                             </div>
                         </form>
                     </div>
