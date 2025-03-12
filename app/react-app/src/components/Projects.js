@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSearch, faChevronRight, faClock, faFolderPlus, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSearch, faChevronRight, faClock, faFolderPlus, faStop, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProgressBar } from 'react-bootstrap';
 import { ProgressContext } from './ProgressContext';
@@ -31,6 +31,7 @@ function Projects() {
     }
   };
 
+  // Handle WebSocket messages
   const handleWebSocketMessage = useCallback((projectId, data) => {
     const parsedData = JSON.parse(data);
 
@@ -70,10 +71,12 @@ function Projects() {
     };
 
     ws.onmessage = (event) => {
-      console.log('Message received from server:', event.data);
-      const projectId = projects.find(p => p._id); // Find the relevant project ID from the message
-      if (projectId) {
-        handleWebSocketMessage(projectId, event.data);
+      const message = JSON.parse(event.data);
+      if (message.type === 'progress-feedback') {
+        const projectId = projects.find(p => p._id); // Find the relevant project ID from the message
+        if (projectId) {
+          handleWebSocketMessage(projectId, event.data);
+        }
       }
     };
 
@@ -89,6 +92,85 @@ function Projects() {
       ws.close();
     };
   }, [projects, handleWebSocketMessage]);
+
+  // Function to start a stream
+  const startStream = async (streamId) => {
+    try {
+      await axios.put(`http://localhost:3001/streams/start/${streamId}`);
+      console.log(`Stream ${streamId} started`);
+    } catch (error) {
+      console.error(`Error starting stream ${streamId}:`, error);
+    }
+  };
+
+  // Function to stop a stream
+  const stopStream = async (streamId) => {
+    try {
+      await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
+      console.log(`Stream ${streamId} stopped`);
+    } catch (error) {
+      console.error(`Error stopping stream ${streamId}:`, error);
+    }
+  };
+
+  // Function to start and stop project (using endpoints)
+  const handleProjectStatus = async (projectId, status) => {
+    try {
+      if (status) {
+        // Stop project and its streams
+        await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
+        console.log("--> Stop Project");
+        status = false;
+
+        // Stop all streams related to this project
+        const project = projects.find(p => p._id === projectId);
+        if (project) {
+          for (const stream of project.streams) {
+            await stopStream(stream._id);
+          }
+        }
+      } else {
+        // Start project and its streams
+        await axios.put(`http://localhost:3001/projects/start/${projectId}`);
+        console.log("--> Play Project");
+
+        const ws = new WebSocket('ws://localhost:8082');
+
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          ws.send(projectId);
+        };
+
+        ws.onmessage = async (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === 'progress-feedback') {
+            handleWebSocketMessage(projectId, event.data);
+          };
+        }
+
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+
+        // Start all streams related to this project
+        const project = projects.find(p => p._id === projectId);
+        if (project) {
+          for (const stream of project.streams) {
+            await startStream(stream._id);
+          }
+        }
+      }
+
+      // Refresh project list after updating status
+      fetchProjects();
+    } catch (error) {
+      console.error('Error updating project status:', error);
+    }
+  };
 
   // Function to expand and collapse the project item
   const toggleProjectDescription = (projectId) => {
@@ -162,83 +244,6 @@ function Projects() {
     const year = date.getFullYear();
 
     return `${hours}:${minutes} ${day}/${month}/${year}`;
-  };
-
-  // Function to start a stream
-  const startStream = async (streamId) => {
-    try {
-      await axios.put(`http://localhost:3001/streams/start/${streamId}`);
-      console.log(`Stream ${streamId} started`);
-    } catch (error) {
-      console.error(`Error starting stream ${streamId}:`, error);
-    }
-  };
-
-  // Function to stop a stream
-  const stopStream = async (streamId) => {
-    try {
-      await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
-      console.log(`Stream ${streamId} stopped`);
-    } catch (error) {
-      console.error(`Error stopping stream ${streamId}:`, error);
-    }
-  };
-
-  // Function to start and stop project (using endpoints)
-  const handleProjectStatus = async (projectId, status) => {
-    try {
-      if (status) {
-        // Stop project and its streams
-        await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
-        console.log("--> Stop Project");
-        status = false;
-
-        // Stop all streams related to this project
-        const project = projects.find(p => p._id === projectId);
-        if (project) {
-          for (const stream of project.streams) {
-            await stopStream(stream._id);
-          }
-        }
-      } else {
-        // Start project and its streams
-        await axios.put(`http://localhost:3001/projects/start/${projectId}`);
-        console.log("--> Play Project");
-
-        const ws = new WebSocket('ws://localhost:8082');
-
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-          ws.send(projectId);
-        };
-
-        ws.onmessage = async (event) => {
-          console.log('Message received from server:', event.data);
-          handleWebSocketMessage(projectId, event.data);
-        };
-
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-
-        // Start all streams related to this project
-        const project = projects.find(p => p._id === projectId);
-        if (project) {
-          for (const stream of project.streams) {
-            await startStream(stream._id);
-          }
-        }
-      }
-
-      // Refresh project list after updating status
-      fetchProjects();
-    } catch (error) {
-      console.error('Error updating project status:', error);
-    }
   };
 
   // Function to handle click event of "Add Project" button
@@ -352,10 +357,8 @@ function Projects() {
                               />
                               <div className="col-md-2 d-flex align-items-center justify-content-end">
                                 <FontAwesomeIcon
-                                  onClick={() =>
-                                    handleProjectStatus(project._id, project.status)
-                                  }
-                                  icon={project.status ? faPause : faPlay}
+                                  onClick={() => handleProjectStatus(project._id, project.status)}
+                                  icon={project.status ? faStop : faPlay}
                                   size="2x"
                                   style={{
                                     cursor: "pointer",

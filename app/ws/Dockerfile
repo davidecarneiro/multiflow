@@ -1,4 +1,4 @@
-FROM node:15
+FROM node:18
 
 # Diretório de trabalho dentro do contêiner
 WORKDIR /usr/src/app
@@ -8,6 +8,9 @@ COPY . .
 
 # Instale as dependências do servidor WebSocket
 RUN npm install
+
+# Install dockerode
+RUN npm install dockerode
 
 # Exponha a porta em que o servidor WebSocket está ouvindo
 EXPOSE 8082

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,6 +11,8 @@ function AppDetails() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [instanceStatus, setInstanceStatus] = useState({});
+    const [logs, setLogs] = useState('');
+    const wsRef = useRef(null);
 
     // Fetch app details when the component mounts
     useEffect(() => {
@@ -33,6 +35,57 @@ function AppDetails() {
 
         fetchAppDetails();
     }, [id]);
+
+    // Setup WebSocket connection for docker logs
+    useEffect(() => {
+        const MAX_FRONTEND_LOGS = 250; // Maximum number of logs to display
+        const ws = new WebSocket('ws://localhost:8082');
+
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+            ws.send('start-logs'); // Request logs from the backend
+        };
+
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'docker-logs' || message.type === 'docker-logs-error') {
+                setLogs((prevLogs) => {
+                    const newLogs = prevLogs + message.log + "\n"; // Append the new log
+                    const logLines = newLogs.split("\n").filter(Boolean); // Split logs into lines and remove empty lines
+                    if (logLines.length > MAX_FRONTEND_LOGS) {
+                        return logLines.slice(-MAX_FRONTEND_LOGS).join("\n") + "\n"; // Keep only the last 250 logs
+                    }
+                    return newLogs;
+                });
+            } else if (message.type === 'docker-logs-cleared') {
+                setLogs(''); // Clear logs on the frontend
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket connection closed. Reconnecting...');
+            setTimeout(() => {
+                ws.close();
+                ws.onopen(); // Attempt to reconnect after closing
+            }, 5000); // Retry after 5 seconds
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        return () => {
+            ws.close(); // Close the WebSocket connection when the component unmounts
+        };
+    }, []);
+
+    // Clear logs function
+    const clearLogs = () => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send('clear-logs'); // Send clear-logs message to the backend
+        }
+        setLogs(''); // Clear logs on the frontend
+    };
 
     // Function to handle click event of "Add Instance" button
     const handleAddInstanceClick = () => {
@@ -277,6 +330,12 @@ function AppDetails() {
                         )}
                     </div>
                 </div>
+
+                {/* Docker Logs Display */}
+                <div className="col-12" style={{ background: '#f0f0f0', height: '200px', overflowY: 'scroll' }}>
+                    <pre style={{ margin: 0 }}>{logs}</pre>
+                </div>
+                <button className="btn btn-danger mt-2" onClick={clearLogs}>Clear Logs</button>
 
                 {/* Action buttons */}
                 <div className="d-flex justify-content-end mt-3 mb-4">
