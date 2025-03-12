@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
@@ -19,12 +19,7 @@ function ProjectDetails() {
 
 
     // Get project details
-    useEffect(() => {
-        fetchProjectDetails();
-    }, [id]);
-
-    /// Endpoint to get project details
-    const fetchProjectDetails = async () => {
+    const fetchProjectDetails = useCallback(async () => {
         try {
             const response = await axios.get(`http://localhost:3001/projects/${id}`);
             setProject(response.data);
@@ -33,7 +28,11 @@ function ProjectDetails() {
             console.error('Error fetching project details:', error);
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchProjectDetails();
+    }, [fetchProjectDetails]);
 
     // Function to start and stop project (using endpoints)
     const handleProjectStatus = async (projectId, status) => {
