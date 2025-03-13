@@ -43,7 +43,7 @@ function AppDetails() {
 
     // Setup WebSocket connection for docker logs
     useEffect(() => {
-        const MAX_FRONTEND_LOGS = 250; // Maximum number of logs to display
+        let MAX_FRONTEND_LOGS = 250; // Maximum number of logs to display
         const ws = new WebSocket('ws://localhost:8082');
 
         ws.onopen = () => {
@@ -376,91 +376,27 @@ function AppDetails() {
                 {/* Docker Logs Display */}
                 <h5 style={{ fontWeight: '650' }}>Faust Logs</h5>
                 <div style={{ position: "relative", width: "100%" }}>
-                    <div
-                        ref={logRef}
-                        style={{
-                            background: "#F5F6F5",
-                            height: "200px",
-                            borderRadius: "8px",
-                            overflowY: "scroll",
-                            overflowX: "auto",
-                            padding: "15px"
-                        }}
-                    >
+                    <div ref={logRef}
+                        style={{ background: "#F5F6F5", height: "250px", borderRadius: "8px", overflowY: "scroll", overflowX: "auto", padding: "15px" }}>
                         <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{logs}</pre>
                     </div>
                     {/* Top-right group for copy & clear icons with hover animations */}
-                    <div
-                        style={{
-                            position: "absolute",
-                            top: "10px",
-                            right: "27px",
-                            background: "white",
-                            borderRadius: "6px",
-                            padding: "4px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
-                        }}
-                    >
-                        <button
-                            onClick={copyLogs}
-                            onMouseEnter={() => setCopyHovered(true)}
-                            onMouseLeave={() => setCopyHovered(false)}
-                            style={{
-                                padding: "6px",
-                                border: "none",
-                                background: copyHovered ? "#f0f0f0" : "none",
-                                borderRadius: "4px",
-                                color: "#818589",
-                                cursor: "pointer",
-                                transition: "background 0.2s ease"
-                            }}
-                        >
+                    <div style={{ position: "absolute", top: "10px", right: "27px", background: "white", borderRadius: "6px", padding: "4px", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)" }}>
+                        <button onClick={copyLogs} onMouseEnter={() => setCopyHovered(true)} onMouseLeave={() => setCopyHovered(false)}
+                            style={{ padding: "6px", border: "none", background: copyHovered ? "#f0f0f0" : "none", borderRadius: "4px", color: "#818589", cursor: "pointer", transition: "background 0.2s ease" }}>
                             <FontAwesomeIcon icon={faCopy} />
                         </button>
-                        <button
-                            onClick={clearLogs}
-                            onMouseEnter={() => setClearHovered(true)}
-                            onMouseLeave={() => setClearHovered(false)}
-                            style={{
-                                padding: "6px",
-                                border: "none",
-                                background: clearHovered ? "#f0f0f0" : "none",
-                                borderRadius: "4px",
-                                color: "#818589",
-                                cursor: "pointer",
-                                marginTop: "4px",
-                                transition: "background 0.2s ease"
-                            }}
-                        >
+                        <button onClick={clearLogs} onMouseEnter={() => setClearHovered(true)} onMouseLeave={() => setClearHovered(false)}
+                            style={{ padding: "6px", border: "none", background: clearHovered ? "#f0f0f0" : "none", borderRadius: "4px", color: "#818589", cursor: "pointer", marginTop: "4px", transition: "background 0.2s ease" }}>
                             <FontAwesomeIcon icon={faTrash} />
                         </button>
                     </div>
                     {/* Bottom-right scroll-to-bottom circular button */}
-                    <button
-                        onClick={scrollToBottom}
-                        onMouseEnter={() => setScrollHovered(true)}
-                        onMouseLeave={() => setScrollHovered(false)}
+                    <button onClick={scrollToBottom} onMouseEnter={() => setScrollHovered(true)} onMouseLeave={() => setScrollHovered(false)}
                         style={{
-                            position: "absolute",
-                            bottom: "10px",
-                            right: "27px",
-                            width: "35px",
-                            height: "35px",
-                            borderRadius: "50%",
-                            border: "none",
-                            background: scrollHovered ? "#7DF9FF" : "white",
-                            color: "#007BFF",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            transition: "background 0.2s ease",
-                            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
-                        }}
-                    >
+                            position: "absolute", bottom: "10px", right: "27px", width: "35px", height: "35px", borderRadius: "50%", border: "none", background: scrollHovered ? "#7DF9FF" : "white",
+                            color: "#007BFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s ease", boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                        }}>
                         <FontAwesomeIcon icon={faChevronDown} />
                     </button>
                 </div>

@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const { KafkaClient, Producer } = require('kafka-node');
 const Docker = require('dockerode');
+const stream = require('stream');
 
 // Initialize Docker client for interacting with Docker containers
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
@@ -199,14 +200,26 @@ wss.on('connection', (ws) => {
           stdout: true,
           stderr: true,
         });
-        logStream.on('data', (data) => {
+
+        // Create PassThrough streams for stdout and stderr
+        const stdoutStream = new stream.PassThrough();
+        const stderrStream = new stream.PassThrough();
+
+        // Demux the raw log stream to split out stdout and stderr without headers
+        docker.modem.demuxStream(logStream, stdoutStream, stderrStream);
+
+        // Function to handle each log chunk
+        const handleLog = (data) => {
           const logMessage = data.toString();
           logMessages.push(logMessage);
           if (logMessages.length > MAX_LOG_MESSAGES) {
             logMessages.shift();
           }
           ws.send(JSON.stringify({ type: 'docker-logs', log: logMessage }));
-        });
+        };
+
+        stdoutStream.on('data', handleLog);
+        stderrStream.on('data', handleLog);
       } catch (error) {
         console.error('Error starting docker logs:', error);
         ws.send(JSON.stringify({ type: 'docker-logs-error', log: 'Failed to start logs.' }));
