@@ -17,7 +17,7 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
 // Limit the number of log messages stored in memory
-const MAX_LOG_MESSAGES = 250;
+const MAX_LOG_MESSAGES = 500;
 let logMessages = [];
 
 // ----------------------

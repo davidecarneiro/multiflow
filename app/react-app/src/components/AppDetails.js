@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
 
 function AppDetails() {
     const { id } = useParams();
@@ -14,7 +14,14 @@ function AppDetails() {
     const [logs, setLogs] = useState('');
     const logRef = useRef(null);
     const wsRef = useRef(null);
-    // States for hover effects on copy and clear buttons
+
+    // New states for settings
+    const [maxLogs, setMaxLogs] = useState(250);
+    const [consoleHeight, setConsoleHeight] = useState(250);
+    const [showSettings, setShowSettings] = useState(false);
+
+    // States for hover effects on buttons
+    const [settingsHovered, setSettingsHovered] = useState(false);
     const [copyHovered, setCopyHovered] = useState(false);
     const [clearHovered, setClearHovered] = useState(false);
     const [scrollHovered, setScrollHovered] = useState(false);
@@ -25,7 +32,6 @@ function AppDetails() {
             try {
                 const response = await axios.get(`http://localhost:3001/apps/${id}`);
                 setApp(response.data);
-                // Initialize instance statuses based on fetched data
                 const initialStatus = response.data.instances.reduce((acc, instance) => {
                     acc[instance._id] = instance.status;
                     return acc;
@@ -37,59 +43,52 @@ function AppDetails() {
                 setLoading(false);
             }
         };
-
         fetchAppDetails();
     }, [id]);
 
-    // Setup WebSocket connection for docker logs
+    // Setup WebSocket connection for docker logs; re-run when maxLogs changes
     useEffect(() => {
-        let MAX_FRONTEND_LOGS = 250; // Maximum number of logs to display
         const ws = new WebSocket('ws://localhost:8082');
-
         ws.onopen = () => {
             console.log('WebSocket connection established');
-            ws.send('start-logs'); // Request logs from the backend
+            ws.send('start-logs');
         };
-
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'docker-logs' || message.type === 'docker-logs-error') {
                 setLogs((prevLogs) => {
-                    const newLogs = prevLogs + message.log + "\n"; // Append the new log
-                    const logLines = newLogs.split("\n").filter(Boolean); // Split logs into lines and remove empty lines
-                    if (logLines.length > MAX_FRONTEND_LOGS) {
-                        return logLines.slice(-MAX_FRONTEND_LOGS).join("\n") + "\n"; // Keep only the last 250 logs
+                    const newLogs = prevLogs + message.log + "\n";
+                    const logLines = newLogs.split("\n").filter(Boolean);
+                    if (logLines.length > maxLogs) {
+                        return logLines.slice(-maxLogs).join("\n") + "\n";
                     }
                     return newLogs;
                 });
             } else if (message.type === 'docker-logs-cleared') {
-                setLogs(''); // Clear logs on the frontend
+                setLogs('');
             }
         };
-
         ws.onclose = () => {
             console.log('WebSocket connection closed. Reconnecting...');
             setTimeout(() => {
                 ws.close();
-                ws.onopen(); // Attempt to reconnect after closing
-            }, 5000); // Retry after 5 seconds
+                ws.onopen();
+            }, 5000);
         };
-
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
         };
-
         return () => {
-            ws.close(); // Close the WebSocket connection when the component unmounts
+            ws.close();
         };
-    }, []);
+    }, [maxLogs]);
 
     // Clear logs function
     const clearLogs = () => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send('clear-logs'); // Send clear-logs message to the backend
+            wsRef.current.send('clear-logs');
         }
-        setLogs(''); // Clear logs on the frontend
+        setLogs('');
     };
 
     // Copy logs function
@@ -110,24 +109,21 @@ function AppDetails() {
         }
     };
 
-    // Function to handle click event of "Add Instance" button
     const handleAddInstanceClick = () => {
         navigate(`/add-instance?appId=${app._id}`);
     };
 
-    // Function to start or stop an instance
+    // Make API call to update the status
     const handleToggle = async (instanceId) => {
         try {
             const currentStatus = instanceStatus[instanceId];
             const newStatus = !currentStatus;
-
             // Make API call to update the status
             if (newStatus) {
                 await axios.post(`http://localhost:3001/instances/start/${instanceId}`);
             } else {
                 await axios.post(`http://localhost:3001/instances/stop/${instanceId}`);
             }
-
             // Update local status after the API call
             setInstanceStatus(prevState => ({
                 ...prevState,
@@ -141,10 +137,7 @@ function AppDetails() {
     // Handle delete app action
     const handleDelete = async () => {
         const confirmDelete = window.confirm("Are you sure you want to delete this app?");
-        if (!confirmDelete) {
-            return;
-        }
-
+        if (!confirmDelete) return;
         try {
             await axios.delete(`http://localhost:3001/apps/${id}`);
             navigate('/apps');
@@ -174,40 +167,24 @@ function AppDetails() {
         const currentDate = new Date();
         const diffMs = currentDate - dateStarted;
         const diffMins = Math.round(diffMs / (1000 * 60));
-
-        if (diffMins < 60) {
-            return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-        } else if (diffMins < 1440) {
-            const diffHours = Math.floor(diffMins / 60);
-            return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-        } else if (diffMins < 10080) {
-            const diffDays = Math.floor(diffMins / 1440);
-            return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-        } else if (diffMins < 43800) {
-            const diffWeeks = Math.floor(diffMins / 10080);
-            return `${diffWeeks} ${diffWeeks === 1 ? 'week' : 'weeks'} ago`;
-        } else if (diffMins < 525600) {
-            const diffMonths = Math.floor(diffMins / 43800);
-            return `${diffMonths} ${diffMonths === 1 ? 'month' : 'months'} ago`;
-        } else {
-            const diffYears = Math.floor(diffMins / 525600);
-            return `${diffYears} ${diffYears === 1 ? 'year' : 'years'} ago`;
-        }
+        if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+        else if (diffMins < 1440) return `${Math.floor(diffMins / 60)} ${Math.floor(diffMins / 60) === 1 ? 'hour' : 'hours'} ago`;
+        else if (diffMins < 10080) return `${Math.floor(diffMins / 1440)} ${Math.floor(diffMins / 1440) === 1 ? 'day' : 'days'} ago`;
+        else if (diffMins < 43800) return `${Math.floor(diffMins / 10080)} ${Math.floor(diffMins / 10080) === 1 ? 'week' : 'weeks'} ago`;
+        else if (diffMins < 525600) return `${Math.floor(diffMins / 43800)} ${Math.floor(diffMins / 43800) === 1 ? 'month' : 'months'} ago`;
+        else return `${Math.floor(diffMins / 525600)} ${Math.floor(diffMins / 525600) === 1 ? 'year' : 'years'} ago`;
     };
 
     // Function to parse date into hh:mm dd/mm/yyyy
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-
         // Format hours and minutes with leading zeros
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
-
         // Format day, month, and year
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-
         return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
@@ -253,7 +230,6 @@ function AppDetails() {
                 <h5 style={{ fontWeight: '650' }}>Description</h5>
                 <h6>{app.description ? app.description : "This app has no description."}</h6>
                 <h5 className='mt-3' style={{ fontWeight: '650' }}>App Details</h5>
-
                 {/* Display selected App file */}
                 <div className='d-flex justify-content-start align-items-center'>
                     <span className='me-2'>File Name:</span>
@@ -267,14 +243,9 @@ function AppDetails() {
                 {app.customFields && app.customFields.length > 0 ? (
                     <div className='row'>
                         {app.customFields.map((field, index) => {
-                            const truncate = (str, length) => {
-                                if (str.length <= length) return str;
-                                return str.slice(0, length) + '...';
-                            };
-
+                            const truncate = (str, length) => (str.length <= length ? str : str.slice(0, length) + '...');
                             // To limit the amount of letters displayed
                             const truncatedName = truncate(field.name, 17);
-
                             return (
                                 <div key={index} className={`col-md-${Math.ceil(12 / Math.min(app.customFields.length, 5))} mb-3`}>
                                     <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
@@ -318,20 +289,18 @@ function AppDetails() {
                             <>
                                 {app.instances.map((instance, index) => (
                                     <div key={instance._id} className={`col-md-${Math.ceil(12 / Math.min(app.instances.length, 5))} mb-3`}>
-                                        <div className='card' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
+                                        <div className='card' style={{ backgroundColor: '#F5F6F6', borderRadius: '8px' }}>
                                             <div className='card-body d-flex justify-content-between align-items-center'>
                                                 <div className='col-10'>
-                                                    {/* Instance name */}
-                                                    <span
-                                                        onClick={() => navigate(`/instances/${instance._id}`)}
+                                                {/* Instance name */}
+                                                    <span onClick={() => navigate(`/instances/${instance._id}`)}
                                                         style={{ cursor: 'pointer', textDecoration: 'none' }}
                                                         onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                                                        onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                                                    >
+                                                        onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
                                                         {instance.name}
                                                     </span>
                                                     <div className='d-flex justify-content-start align-items-center mt-2'>
-                                                        {/* Instance details such as 'last started' and 'created at' */}
+                                                    {/* Instance details such as 'last started' and 'created at' */}
                                                         <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
                                                             <FontAwesomeIcon icon={faClock} />
                                                             <span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span>
@@ -350,13 +319,8 @@ function AppDetails() {
                                                 <div className='col-md-2'>
                                                     <div className='d-flex align-items-center justify-content-end'>
                                                         <div className="form-check form-switch" style={{ transform: 'scale(1.25)' }}>
-                                                            <input
-                                                                className="form-check-input"
-                                                                type="checkbox"
-                                                                id={`switch-${instance._id}`}
-                                                                checked={instanceStatus[instance._id] || false}
-                                                                onChange={() => handleToggle(instance._id)}
-                                                            />
+                                                            <input className="form-check-input" type="checkbox" id={`switch-${instance._id}`}
+                                                                checked={instanceStatus[instance._id] || false} onChange={() => handleToggle(instance._id)} />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -364,7 +328,6 @@ function AppDetails() {
                                         </div>
                                     </div>
                                 ))}
-                                {/* Fill remaining spaces in the row */}
                                 {Array.from({ length: 5 - (app.instances.length % 5) }, (_, i) => (
                                     <div key={i} className={`col-md-${Math.ceil(12 / Math.min(app.instances.length, 5))} mb-3`} />
                                 ))}
@@ -377,25 +340,106 @@ function AppDetails() {
                 <h5 style={{ fontWeight: '650' }}>Faust Logs</h5>
                 <div style={{ position: "relative", width: "100%" }}>
                     <div ref={logRef}
-                        style={{ background: "#F5F6F5", height: "250px", borderRadius: "8px", overflowY: "scroll", overflowX: "auto", padding: "15px" }}>
+                        style={{ background: "#F5F6F5", height: `${consoleHeight}px`, borderRadius: "8px", overflowY: "scroll", overflowX: "auto", padding: "15px" }}>
                         <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{logs}</pre>
                     </div>
-                    {/* Top-right group for copy & clear icons with hover animations */}
-                    <div style={{ position: "absolute", top: "10px", right: "27px", background: "white", borderRadius: "6px", padding: "4px", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)" }}>
-                        <button onClick={copyLogs} onMouseEnter={() => setCopyHovered(true)} onMouseLeave={() => setCopyHovered(false)}
-                            style={{ padding: "6px", border: "none", background: copyHovered ? "#f0f0f0" : "none", borderRadius: "4px", color: "#818589", cursor: "pointer", transition: "background 0.2s ease" }}>
+                    {/* Top-right group: Settings, then Copy & Clear buttons */}
+                    <div style={{
+                        position: "absolute",
+                        top: "10px",
+                        right: "27px",
+                        background: "white",
+                        borderRadius: "6px",
+                        padding: "4px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                    }}>
+                        {/* Settings button */}
+                        <button onClick={() => setShowSettings(!showSettings)}
+                            onMouseEnter={() => setSettingsHovered(true)}
+                            onMouseLeave={() => setSettingsHovered(false)}
+                            style={{
+                                padding: "6px",
+                                border: "none",
+                                borderRadius: "4px",
+                                background: settingsHovered ? "#f0f0f0" : "none",
+                                color: "#818589",
+                                cursor: "pointer",
+                                transition: "background 0.2s ease"
+                            }}>
+                            <FontAwesomeIcon icon={faGear} />
+                        </button>
+                        {/* Settings Panel */}
+                        {showSettings && (
+                            <div style={{ position: 'absolute', right: '100%', marginRight: '10px', top: "0px", width: '150px', background: 'white', borderRadius: '6px', padding: '8px', boxShadow: '0px 2px 5px rgba(0,0,0,0.2)', zIndex: 100 }}>
+                                <div className='mb-2'>
+                                    <div className='row'><label className='tiny-label' style={{ fontSize: '12px' }}>Max Logs (lines):</label></div>
+                                    <input type="range" value={maxLogs} min="50" max="500" onChange={(e) => setMaxLogs(Number(e.target.value))} />
+                                    <label className='d-flex justify-content-center'><input className='d-flex justify-content-center' type="number" value={maxLogs} min="50" max="500" onChange={(e) => setMaxLogs(Math.min(500, Math.max(50, Number(e.target.value))))} /></label>
+                                    {/*<label className='tiny-label d-flex justify-content-center'>{maxLogs} lines</label>*/}
+                                </div>
+                                <div>
+                                    <div className='row'><label className='tiny-label' style={{ fontSize: '12px' }}>Console Height (px):</label></div>
+                                    <input type="range" value={consoleHeight} min="200" max="1000" onChange={(e) => setConsoleHeight(Number(e.target.value))} />
+                                    <label className='d-flex justify-content-center'><input type="number" value={consoleHeight} min="200" max="1000" onChange={(e) => setConsoleHeight(Math.min(1000, Math.max(200, Number(e.target.value))))} /></label>
+                                    {/*<label className='tiny-label d-flex justify-content-center'>{consoleHeight}px</label>*/}
+                                </div>
+                            </div>
+                        )}
+                        {/* Copy Button */}
+                        <button onClick={copyLogs}
+                            onMouseEnter={() => setCopyHovered(true)}
+                            onMouseLeave={() => setCopyHovered(false)}
+                            style={{
+                                padding: "6px",
+                                border: "none",
+                                background: copyHovered ? "#f0f0f0" : "none",
+                                borderRadius: "4px",
+                                color: "#818589",
+                                cursor: "pointer",
+                                transition: "background 0.2s ease"
+                            }}>
                             <FontAwesomeIcon icon={faCopy} />
                         </button>
-                        <button onClick={clearLogs} onMouseEnter={() => setClearHovered(true)} onMouseLeave={() => setClearHovered(false)}
-                            style={{ padding: "6px", border: "none", background: clearHovered ? "#f0f0f0" : "none", borderRadius: "4px", color: "#818589", cursor: "pointer", marginTop: "4px", transition: "background 0.2s ease" }}>
+                        {/* Clear Button */}
+                        <button onClick={clearLogs}
+                            onMouseEnter={() => setClearHovered(true)}
+                            onMouseLeave={() => setClearHovered(false)}
+                            style={{
+                                padding: "6px",
+                                border: "none",
+                                background: clearHovered ? "#f0f0f0" : "none",
+                                borderRadius: "4px",
+                                color: "#818589",
+                                cursor: "pointer",
+                                marginTop: "4px",
+                                transition: "background 0.2s ease"
+                            }}>
                             <FontAwesomeIcon icon={faTrash} />
                         </button>
                     </div>
                     {/* Bottom-right scroll-to-bottom circular button */}
-                    <button onClick={scrollToBottom} onMouseEnter={() => setScrollHovered(true)} onMouseLeave={() => setScrollHovered(false)}
+                    <button onClick={scrollToBottom}
+                        onMouseEnter={() => setScrollHovered(true)}
+                        onMouseLeave={() => setScrollHovered(false)}
                         style={{
-                            position: "absolute", bottom: "10px", right: "27px", width: "35px", height: "35px", borderRadius: "50%", border: "none", background: scrollHovered ? "#7DF9FF" : "white",
-                            color: "#007BFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s ease", boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                            position: "absolute",
+                            bottom: "10px",
+                            right: "27px",
+                            width: "35px",
+                            height: "35px",
+                            borderRadius: "50%",
+                            border: "none",
+                            background: scrollHovered ? "#7DF9FF" : "white",
+                            color: "#007BFF",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "background 0.2s ease",
+                            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
                         }}>
                         <FontAwesomeIcon icon={faChevronDown} />
                     </button>
@@ -411,7 +455,7 @@ function AppDetails() {
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 
