@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport } from '@fortawesome/free-solid-svg-icons';
+import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy } from '@fortawesome/free-solid-svg-icons';
 
 function AppDetails() {
     const { id } = useParams();
@@ -12,7 +12,12 @@ function AppDetails() {
     const [copied, setCopied] = useState(false);
     const [instanceStatus, setInstanceStatus] = useState({});
     const [logs, setLogs] = useState('');
+    const logRef = useRef(null);
     const wsRef = useRef(null);
+    // States for hover effects on copy and clear buttons
+    const [copyHovered, setCopyHovered] = useState(false);
+    const [clearHovered, setClearHovered] = useState(false);
+    const [scrollHovered, setScrollHovered] = useState(false);
 
     // Fetch app details when the component mounts
     useEffect(() => {
@@ -85,6 +90,24 @@ function AppDetails() {
             wsRef.current.send('clear-logs'); // Send clear-logs message to the backend
         }
         setLogs(''); // Clear logs on the frontend
+    };
+
+    // Copy logs function
+    const copyLogs = () => {
+        navigator.clipboard.writeText(logs);
+    };
+
+    // Auto-scroll to bottom when logs update
+    useEffect(() => {
+        if (logRef.current) {
+            logRef.current.scrollTop = logRef.current.scrollHeight;
+        }
+    }, [logs]);
+
+    const scrollToBottom = () => {
+        if (logRef.current) {
+            logRef.current.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+        }
     };
 
     // Function to handle click event of "Add Instance" button
@@ -188,7 +211,7 @@ function AppDetails() {
         return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
-    // Function to copy data source ID to clipboard and show confirmation message
+    // Function to copy app id to clipboard and show confirmation message
     const copyAppId = () => {
         navigator.clipboard.writeText(app._id);
         setCopied(true);
@@ -211,9 +234,18 @@ function AppDetails() {
                     <span className='ms-1' style={{ cursor: 'pointer' }}>Id: {app._id}</span>
                     {copied && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
                 </label>
-                <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last started: {app.dateLastStarted ? parseDate(app.dateLastStarted) : 'Never'}</span></label>
-                <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'>Created at: </span> {formatDate(app.dateCreated)}</label>
-                <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>Last updated: {app.dateUpdated ? parseDate(app.dateUpdated) : 'Never'}</span></label>
+                <label className='ms-4 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                    <FontAwesomeIcon icon={faClock} />
+                    <span className='ms-1'>Last started: {app.dateLastStarted ? parseDate(app.dateLastStarted) : 'Never'}</span>
+                </label>
+                <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                    <FontAwesomeIcon icon={faFolderPlus} />
+                    <span className='ms-1'>Created at: </span> {formatDate(app.dateCreated)}
+                </label>
+                <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                    <FontAwesomeIcon icon={faClock} />
+                    <span className='ms-1'>Last updated: {app.dateUpdated ? parseDate(app.dateUpdated) : 'Never'}</span>
+                </label>
             </div>
 
             {/* App remaining details */}
@@ -294,14 +326,24 @@ function AppDetails() {
                                                         onClick={() => navigate(`/instances/${instance._id}`)}
                                                         style={{ cursor: 'pointer', textDecoration: 'none' }}
                                                         onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                                                        onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                                                        onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                                    >
                                                         {instance.name}
                                                     </span>
                                                     <div className='d-flex justify-content-start align-items-center mt-2'>
                                                         {/* Instance details such as 'last started' and 'created at' */}
-                                                        <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faClock} /><span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span></label>
-                                                        <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faFolderPlus} /><span className='ms-1'></span> {formatDate(instance.dateCreated)}</label>
-                                                        <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}><FontAwesomeIcon icon={faPassport} /><span className='ms-1'></span>{instance.port}</label>
+                                                        <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                            <FontAwesomeIcon icon={faClock} />
+                                                            <span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span>
+                                                        </label>
+                                                        <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                            <FontAwesomeIcon icon={faFolderPlus} />
+                                                            <span className='ms-1'></span> {formatDate(instance.dateCreated)}
+                                                        </label>
+                                                        <label className='ms-3 tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
+                                                            <FontAwesomeIcon icon={faPassport} />
+                                                            <span className='ms-1'></span>{instance.port}
+                                                        </label>
                                                     </div>
                                                 </div>
                                                 {/* Toggle instance switch */}
@@ -332,15 +374,105 @@ function AppDetails() {
                 </div>
 
                 {/* Docker Logs Display */}
-                <div className="col-12" style={{ background: '#f0f0f0', height: '200px', overflowY: 'scroll' }}>
-                    <pre style={{ margin: 0 }}>{logs}</pre>
+                <h5 style={{ fontWeight: '650' }}>Faust Logs</h5>
+                <div style={{ position: "relative", width: "100%" }}>
+                    <div
+                        ref={logRef}
+                        style={{
+                            background: "#F5F6F5",
+                            height: "200px",
+                            borderRadius: "8px",
+                            overflowY: "scroll",
+                            overflowX: "auto",
+                            padding: "15px"
+                        }}
+                    >
+                        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{logs}</pre>
+                    </div>
+                    {/* Top-right group for copy & clear icons with hover animations */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "10px",
+                            right: "27px",
+                            background: "white",
+                            borderRadius: "6px",
+                            padding: "4px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                        }}
+                    >
+                        <button
+                            onClick={copyLogs}
+                            onMouseEnter={() => setCopyHovered(true)}
+                            onMouseLeave={() => setCopyHovered(false)}
+                            style={{
+                                padding: "6px",
+                                border: "none",
+                                background: copyHovered ? "#f0f0f0" : "none",
+                                borderRadius: "4px",
+                                color: "#818589",
+                                cursor: "pointer",
+                                transition: "background 0.2s ease"
+                            }}
+                        >
+                            <FontAwesomeIcon icon={faCopy} />
+                        </button>
+                        <button
+                            onClick={clearLogs}
+                            onMouseEnter={() => setClearHovered(true)}
+                            onMouseLeave={() => setClearHovered(false)}
+                            style={{
+                                padding: "6px",
+                                border: "none",
+                                background: clearHovered ? "#f0f0f0" : "none",
+                                borderRadius: "4px",
+                                color: "#818589",
+                                cursor: "pointer",
+                                marginTop: "4px",
+                                transition: "background 0.2s ease"
+                            }}
+                        >
+                            <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                    </div>
+                    {/* Bottom-right scroll-to-bottom circular button */}
+                    <button
+                        onClick={scrollToBottom}
+                        onMouseEnter={() => setScrollHovered(true)}
+                        onMouseLeave={() => setScrollHovered(false)}
+                        style={{
+                            position: "absolute",
+                            bottom: "10px",
+                            right: "27px",
+                            width: "35px",
+                            height: "35px",
+                            borderRadius: "50%",
+                            border: "none",
+                            background: scrollHovered ? "#7DF9FF" : "white",
+                            color: "#007BFF",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "background 0.2s ease",
+                            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                        }}
+                    >
+                        <FontAwesomeIcon icon={faChevronDown} />
+                    </button>
                 </div>
-                <button className="btn btn-danger mt-2" onClick={clearLogs}>Clear Logs</button>
 
                 {/* Action buttons */}
                 <div className="d-flex justify-content-end mt-3 mb-4">
-                    <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}><FontAwesomeIcon icon={faPenToSquare} /> Edit</button>
-                    <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}><FontAwesomeIcon icon={faTrash} /> Delete</button>
+                    <button className="btn btn-warning me-2" style={{ fontWeight: '500' }} onClick={handleEdit}>
+                        <FontAwesomeIcon icon={faPenToSquare} /> Edit
+                    </button>
+                    <button className="btn btn-danger" style={{ fontWeight: '500' }} onClick={handleDelete}>
+                        <FontAwesomeIcon icon={faTrash} /> Delete
+                    </button>
                 </div>
             </div>
         </div>
