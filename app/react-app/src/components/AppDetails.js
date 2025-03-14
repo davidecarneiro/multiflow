@@ -338,7 +338,7 @@ function AppDetails() {
 
                 {/* Docker Logs Display */}
                 <h5 style={{ fontWeight: '650' }}>Faust Logs</h5>
-                <div style={{ position: "relative", width: "100%" }}>
+                <div className='card' style={{ position: "relative", width: "100%" }}>
                     <div ref={logRef}
                         style={{ background: "#F5F6F5", height: `${consoleHeight}px`, borderRadius: "8px", overflowY: "scroll", overflowX: "auto", padding: "15px" }}>
                         <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{logs}</pre>
