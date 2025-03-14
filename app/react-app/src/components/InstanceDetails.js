@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
 
 function InstanceDetails() {
     const { id } = useParams();
@@ -14,6 +14,20 @@ function InstanceDetails() {
     const [copied, setCopied] = useState(false);
     const [copiedApp, setCopiedApp] = useState(false);
     const [copiedStream, setCopiedStream] = useState(false);
+    const [logs, setLogs] = useState('');
+    const logRef = useRef(null);
+    const wsRef = useRef(null);
+
+    // New states for settings
+    const [maxLogs, setMaxLogs] = useState(250);
+    const [consoleHeight, setConsoleHeight] = useState(250);
+    const [showSettings, setShowSettings] = useState(false);
+
+    // States for hover effects on buttons
+    const [settingsHovered, setSettingsHovered] = useState(false);
+    const [copyHovered, setCopyHovered] = useState(false);
+    const [clearHovered, setClearHovered] = useState(false);
+    const [scrollHovered, setScrollHovered] = useState(false);
 
     // Fetch instance details when the component mounts
     useEffect(() => {
@@ -49,6 +63,69 @@ function InstanceDetails() {
             fetchAppDetails();
         }
     }, [instance]);
+
+    // Setup WebSocket connection for docker logs; re-run when maxLogs changes
+    useEffect(() => {
+        const ws = new WebSocket('ws://localhost:8082');
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+            ws.send('start-logs');
+        };
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'docker-logs' || message.type === 'docker-logs-error') {
+                setLogs((prevLogs) => {
+                    const newLogs = prevLogs + message.log + "\n";
+                    const logLines = newLogs.split("\n").filter(Boolean);
+                    if (logLines.length > maxLogs) {
+                        return logLines.slice(-maxLogs).join("\n") + "\n";
+                    }
+                    return newLogs;
+                });
+            } else if (message.type === 'docker-logs-cleared') {
+                setLogs('');
+            }
+        };
+        ws.onclose = () => {
+            console.log('WebSocket connection closed. Reconnecting...');
+            setTimeout(() => {
+                ws.close();
+                ws.onopen();
+            }, 5000);
+        };
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+        return () => {
+            ws.close();
+        };
+    }, [maxLogs]);
+
+    // Clear logs function
+    const clearLogs = () => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send('clear-logs');
+        }
+        setLogs('');
+    };
+
+    // Copy logs function
+    const copyLogs = () => {
+        navigator.clipboard.writeText(logs);
+    };
+
+    // Auto-scroll to bottom when logs update
+    useEffect(() => {
+        if (logRef.current) {
+            logRef.current.scrollTop = logRef.current.scrollHeight;
+        }
+    }, [logs]);
+
+    const scrollToBottom = () => {
+        if (logRef.current) {
+            logRef.current.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+        }
+    };
 
     // Function to parse date and calculate time from now
     const parseDate = (dateString) => {
@@ -297,7 +374,7 @@ function InstanceDetails() {
 
             {/* App associated */}
             {app && (
-                <div className='mt-3'>
+                <div className='mt-1'>
                     <h5 style={{ fontWeight: '650' }}>App Associated</h5>
                     <div className='card mt-2 col-4' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                         <div className='card-body'>
@@ -316,6 +393,115 @@ function InstanceDetails() {
                     </div>
                 </div>
             )}
+
+            {/* Docker Logs Display */}
+            <h5 className='mt-3' style={{ fontWeight: '650' }}>Faust Logs</h5>
+            <div className='card' style={{ position: "relative", width: "100%" }}>
+                <div ref={logRef}
+                    style={{ background: "#F5F6F5", height: `${consoleHeight}px`, borderRadius: "8px", overflowY: "scroll", overflowX: "auto", padding: "15px" }}>
+                    <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{logs}</pre>
+                </div>
+                {/* Top-right group: Settings, then Copy & Clear buttons */}
+                <div style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    background: "white",
+                    borderRadius: "6px",
+                    padding: "4px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                }}>
+                    {/* Settings button */}
+                    <button onClick={() => setShowSettings(!showSettings)}
+                        onMouseEnter={() => setSettingsHovered(true)}
+                        onMouseLeave={() => setSettingsHovered(false)}
+                        style={{
+                            padding: "6px",
+                            border: "none",
+                            borderRadius: "4px",
+                            background: settingsHovered ? "#f0f0f0" : "none",
+                            color: "#818589",
+                            cursor: "pointer",
+                            transition: "background 0.2s ease"
+                        }}>
+                        <FontAwesomeIcon icon={faGear} />
+                    </button>
+                    {/* Settings Panel */}
+                    {showSettings && (
+                        <div style={{ position: 'absolute', right: '100%', marginRight: '10px', top: "0px", width: '150px', background: 'white', borderRadius: '6px', padding: '8px', boxShadow: '0px 2px 5px rgba(0,0,0,0.2)', zIndex: 100 }}>
+                            <div className='mb-2'>
+                                <div className='row'><label className='tiny-label' style={{ fontSize: '12px' }}>Max Logs (lines):</label></div>
+                                <input type="range" value={maxLogs} min="50" max="500" onChange={(e) => setMaxLogs(Number(e.target.value))} />
+                                <label className='d-flex justify-content-center'><input className='d-flex justify-content-center' type="number" value={maxLogs} min="50" max="500" onChange={(e) => setMaxLogs(Math.min(500, Math.max(50, Number(e.target.value))))} /></label>
+                                {/*<label className='tiny-label d-flex justify-content-center'>{maxLogs} lines</label>*/}
+                            </div>
+                            <div>
+                                <div className='row'><label className='tiny-label' style={{ fontSize: '12px' }}>Console Height (px):</label></div>
+                                <input type="range" value={consoleHeight} min="200" max="1000" onChange={(e) => setConsoleHeight(Number(e.target.value))} />
+                                <label className='d-flex justify-content-center'><input type="number" value={consoleHeight} min="200" max="1000" onChange={(e) => setConsoleHeight(Math.min(1000, Math.max(200, Number(e.target.value))))} /></label>
+                                {/*<label className='tiny-label d-flex justify-content-center'>{consoleHeight}px</label>*/}
+                            </div>
+                        </div>
+                    )}
+                    {/* Copy Button */}
+                    <button onClick={copyLogs}
+                        onMouseEnter={() => setCopyHovered(true)}
+                        onMouseLeave={() => setCopyHovered(false)}
+                        style={{
+                            padding: "6px",
+                            border: "none",
+                            background: copyHovered ? "#f0f0f0" : "none",
+                            borderRadius: "4px",
+                            color: "#818589",
+                            cursor: "pointer",
+                            transition: "background 0.2s ease"
+                        }}>
+                        <FontAwesomeIcon icon={faCopy} />
+                    </button>
+                    {/* Clear Button */}
+                    <button onClick={clearLogs}
+                        onMouseEnter={() => setClearHovered(true)}
+                        onMouseLeave={() => setClearHovered(false)}
+                        style={{
+                            padding: "6px",
+                            border: "none",
+                            background: clearHovered ? "#f0f0f0" : "none",
+                            borderRadius: "4px",
+                            color: "#818589",
+                            cursor: "pointer",
+                            marginTop: "4px",
+                            transition: "background 0.2s ease"
+                        }}>
+                        <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                </div>
+                {/* Bottom-right scroll-to-bottom circular button */}
+                <button onClick={scrollToBottom}
+                    onMouseEnter={() => setScrollHovered(true)}
+                    onMouseLeave={() => setScrollHovered(false)}
+                    style={{
+                        position: "absolute",
+                        bottom: "10px",
+                        right: "10px",
+                        width: "35px",
+                        height: "35px",
+                        borderRadius: "50%",
+                        border: "none",
+                        background: scrollHovered ? "#7DF9FF" : "white",
+                        color: "#007BFF",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background 0.2s ease",
+                        boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)"
+                    }}>
+                    <FontAwesomeIcon icon={faChevronDown} />
+                </button>
+            </div>
 
             {/* Buttons for Edit and Delete */}
             <div className="d-flex justify-content-end mb-4">
