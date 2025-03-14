@@ -347,7 +347,7 @@ function AppDetails() {
                     <div style={{
                         position: "absolute",
                         top: "10px",
-                        right: "27px",
+                        right: "10px",
                         background: "white",
                         borderRadius: "6px",
                         padding: "4px",
@@ -427,7 +427,7 @@ function AppDetails() {
                         style={{
                             position: "absolute",
                             bottom: "10px",
-                            right: "27px",
+                            right: "10px",
                             width: "35px",
                             height: "35px",
                             borderRadius: "50%",
