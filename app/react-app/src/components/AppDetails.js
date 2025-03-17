@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCubes, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
+import { useRefresh } from '../components/RefreshContext';
 
 function AppDetails() {
     const { id } = useParams();
@@ -14,6 +15,7 @@ function AppDetails() {
     const [logs, setLogs] = useState('');
     const logRef = useRef(null);
     const wsRef = useRef(null);
+    const { triggerRefresh } = useRefresh();
 
     // New states for settings
     const [maxLogs, setMaxLogs] = useState(250);
@@ -129,6 +131,9 @@ function AppDetails() {
                 ...prevState,
                 [instanceId]: newStatus
             }));
+
+            // Trigger a refresh on the Sidebar shortcut
+            triggerRefresh();
         } catch (error) {
             console.error('Error toggling instance status:', error);
         }
@@ -292,7 +297,7 @@ function AppDetails() {
                                         <div className='card' style={{ backgroundColor: '#F5F6F6', borderRadius: '8px' }}>
                                             <div className='card-body d-flex justify-content-between align-items-center'>
                                                 <div className='col-10'>
-                                                {/* Instance name */}
+                                                    {/* Instance name */}
                                                     <span onClick={() => navigate(`/instances/${instance._id}`)}
                                                         style={{ cursor: 'pointer', textDecoration: 'none' }}
                                                         onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
@@ -300,7 +305,7 @@ function AppDetails() {
                                                         {instance.name}
                                                     </span>
                                                     <div className='d-flex justify-content-start align-items-center mt-2'>
-                                                    {/* Instance details such as 'last started' and 'created at' */}
+                                                        {/* Instance details such as 'last started' and 'created at' */}
                                                         <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }}>
                                                             <FontAwesomeIcon icon={faClock} />
                                                             <span className='ms-1'>{instance.dateLastStarted ? parseDate(instance.dateLastStarted) : 'Never'}</span>

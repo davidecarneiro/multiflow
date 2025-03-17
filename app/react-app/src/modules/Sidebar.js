@@ -4,6 +4,7 @@ import { faDiagramProject, faCubes, faCube, faDatabase, faChartLine, faTerminal,
 import logo from './logo.png';
 import minLogo from './minLogo.png';
 import { NavLink } from 'react-router-dom';
+import { useRefresh } from '../components/RefreshContext';
 
 function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
@@ -13,6 +14,7 @@ function Sidebar() {
     const [isAnimating, setIsAnimating] = useState(false); // Tracks animation state for smooth transitions
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [userToggledInstances, setUserToggledInstances] = useState(false); // Tracks if user manually toggled instances
+    const { refresh } = useRefresh();
 
     // Delay text rendering for 0.2 seconds after expanding
     useEffect(() => {
@@ -40,6 +42,11 @@ function Sidebar() {
             console.error("Error fetching active instances:", error);
         }
     };
+
+    // Fetch active instances on mount and whenever refresh is triggered
+    useEffect(() => {
+        fetchActiveInstances();
+    }, [refresh]);
 
     // Fetch on component mount
     useEffect(() => {
@@ -113,11 +120,11 @@ function Sidebar() {
         borderRadius: "5px",
         marginBottom: "10px",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        transition: "all 0.3s ease-in-out",
+        transition: "all 0.1s ease-in-out",
     };
 
     const spinStyle = {
-        transform: "rotate(180deg)",
+        transform: "rotate(360deg)",
         transition: "transform 0.5s",
     };
 
