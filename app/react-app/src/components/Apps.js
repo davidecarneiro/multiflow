@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPassport, faChevronDown, faChevronRight, faClock, faFolderPlus, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPassport, faChevronRight, faClock, faFolderPlus, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { useRefresh } from '../components/RefreshContext';
 
 function Apps() {
     const [apps, setApps] = useState([]);
@@ -11,6 +12,7 @@ function Apps() {
     const [searchQuery, setSearchQuery] = useState('');
     const [instanceStatus, setInstanceStatus] = useState({});
     const navigate = useNavigate();
+    const { triggerRefresh } = useRefresh();
 
     // Fetch all apps when the component mounts
     useEffect(() => {
@@ -92,6 +94,9 @@ function Apps() {
                 ...prevState,
                 [instanceId]: !currentStatus
             }));
+
+            // Trigger a refresh on the Sidebar shortcut
+            triggerRefresh();
         } catch (error) {
             console.error('Error toggling instance status:', error);
         }
