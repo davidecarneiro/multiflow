@@ -162,6 +162,7 @@ function Sidebar() {
                         </NavLink>
                     </li>
                 </ul>
+
                 {/* Active Instances Display */}
                 <div className="mt-4">
                     {/* Active Instances Header */}
@@ -203,9 +204,11 @@ function Sidebar() {
                     {/* Active Instances List */}
                     <div
                         style={{
-                            maxHeight: instancesCollapsed ? "0px" : "500px",
-                            overflow: "hidden",
-                            transition: "max-height 0.5s ease-in-out"
+                            maxHeight: instancesCollapsed ? "0px" : "20vh", // Set a maximum height for the active instances list
+                            overflowY: activeInstances.length > 1 ? "auto" : "hidden", // Enable scrolling if there are more than 3 active instances
+                            transition: "max-height 0.5s ease-in-out",
+                            scrollbarWidth: "none", // Firefox
+                            msOverflowStyle: "none", // Internet Explorer 10+
                         }}
                     >
                         <div className="mt-2">
@@ -235,8 +238,11 @@ function Sidebar() {
                             ))}
                         </div>
                     </div>
+
                 </div>
-                <hr />
+
+                <hr /> {/* Separating Line */}
+
                 {/* Collapse and Extend Button */}
                 <div className="d-flex ps-2 align-items-center">
                     <button className="mb-3" onClick={handleToggle} style={{ backgroundColor: 'transparent', border: 'none', color: 'white' }}>
