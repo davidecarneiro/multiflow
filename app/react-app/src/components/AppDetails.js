@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
+import { faCubes, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
 
 function AppDetails() {
     const { id } = useParams();
@@ -207,7 +207,7 @@ function AppDetails() {
             {/* App details such as id, 'last started' and 'created at' */}
             <div className='d-flex justify-content-start'>
                 <label className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyAppId}>
-                    <FontAwesomeIcon icon={faCube} />
+                    <FontAwesomeIcon icon={faCubes} />
                     <span className='ms-1' style={{ cursor: 'pointer' }}>Id: {app._id}</span>
                     {copied && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
                 </label>

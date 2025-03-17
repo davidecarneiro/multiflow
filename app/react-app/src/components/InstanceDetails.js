@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCube, faClock, faFolderPlus, faPenToSquare, faTrash, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
+import { faCube, faCubes, faClock, faFolderPlus, faPenToSquare, faTrash, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
 
 function InstanceDetails() {
     const { id } = useParams();
@@ -385,7 +385,7 @@ function InstanceDetails() {
                                 {app.name}
                             </div>
                             <span className='tiny-label' style={{ fontSize: '10px', color: 'gray' }} onClick={copyAppId}>
-                                <FontAwesomeIcon icon={faCube} />
+                                <FontAwesomeIcon icon={faCubes} />
                                 <span className='ms-1' style={{ cursor: 'pointer' }}>App Id: {app._id}</span>
                                 {copiedApp && <span style={{ marginLeft: '5px', color: 'green' }}>App ID Copied!</span>}
                             </span>
