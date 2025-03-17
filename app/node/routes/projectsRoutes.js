@@ -56,6 +56,21 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Endpoint to get all active Projects with only necessary fields
+router.get('/active', async (req, res) => {
+    try {
+        console.log("Fetching all active Projects.");
+        const activeProjects = await Projects.find(
+            { status: true }, // Filter by status
+            { _id: 1, name: 1, appId: 1, status: 1, dateLastStarted: 1 } // Projection
+        );
+
+        res.status(200).json(activeProjects);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Endpoint to get a project by ID
 router.get('/:id', async (req, res) => {
     try {
