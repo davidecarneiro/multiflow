@@ -5,6 +5,7 @@ import { faPlus, faSearch, faChevronRight, faClock, faFolderPlus, faStop, faPlay
 import { useNavigate } from 'react-router-dom';
 import { ProgressBar } from 'react-bootstrap';
 import { ProgressContext } from './ProgressContext';
+import { useRefresh } from './RefreshContext';
 
 function Projects() {
   const [projects, setProjects] = useState([]);
@@ -13,6 +14,7 @@ function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
+  const { triggerRefresh } = useRefresh();
 
   // Get all projects
   useEffect(() => {
@@ -133,6 +135,9 @@ function Projects() {
         // Start project and its streams
         await axios.put(`http://localhost:3001/projects/start/${projectId}`);
         console.log("--> Play Project");
+
+        // Trigger a refresh on the Sidebar
+        triggerRefresh();
 
         const ws = new WebSocket('ws://localhost:8082');
 
@@ -357,7 +362,7 @@ function Projects() {
                               />
                               <div className="col-md-2 d-flex align-items-center justify-content-end">
                                 <FontAwesomeIcon
-                                  onClick={() => handleProjectStatus(project._id, project.status)}
+                                  onClick={() => { handleProjectStatus(project._id, project.status); triggerRefresh(); }}
                                   icon={project.status ? faStop : faPlay}
                                   size="2x"
                                   style={{

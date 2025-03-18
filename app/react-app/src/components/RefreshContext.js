@@ -3,15 +3,15 @@ import React, { createContext, useState, useContext } from 'react';
 const RefreshContext = createContext();
 
 export const RefreshProvider = ({ children }) => {
-  const [refresh, setRefresh] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
 
   const triggerRefresh = () => {
-    // Toggle refresh flag to trigger side effects
-    setRefresh(prev => !prev);
+    // Increment the refresh count to trigger side effects
+    setRefreshCount(prev => prev + 1);
   };
 
   return (
-    <RefreshContext.Provider value={{ refresh, triggerRefresh }}>
+    <RefreshContext.Provider value={{ refresh: refreshCount, triggerRefresh }}>
       {children}
     </RefreshContext.Provider>
   );

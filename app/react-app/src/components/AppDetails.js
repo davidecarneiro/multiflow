@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCubes, faClock, faFolderPlus, faPenToSquare, faTrash, faPlus, faPassport, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
-import { useRefresh } from '../components/RefreshContext';
+import { useRefresh } from './RefreshContext';
 
 function AppDetails() {
     const { id } = useParams();

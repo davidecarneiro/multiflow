@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDiagramProject, faCubes, faCube, faDatabase, faChartLine, faTerminal, faCaretSquareLeft, faRotate, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faDiagramProject, faCubes, faCube, faDatabase, faChartLine, faTerminal, faCaretSquareLeft, faRotate, faChevronDown, faBarsProgress, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import logo from './logo.png';
 import minLogo from './minLogo.png';
 import { NavLink } from 'react-router-dom';
 import { useRefresh } from '../components/RefreshContext';
+import { ProgressContext } from '../components/ProgressContext';
 
 function Sidebar() {
+    const { projectPercentages } = useContext(ProgressContext);
     const [collapsed, setCollapsed] = useState(false);
     const [delayRender, setDelayRender] = useState(false);
     const [activeInstances, setActiveInstances] = useState([]);
@@ -14,6 +16,11 @@ function Sidebar() {
     const [isAnimating, setIsAnimating] = useState(false); // Tracks animation state for smooth transitions
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [userToggledInstances, setUserToggledInstances] = useState(false); // Tracks if user manually toggled instances
+    const [userToggledProjects, setUserToggledProjects] = useState(false); // Track if the user manually toggled the projects visibility
+    const [activeProjects, setActiveProjects] = useState([]);
+    const [projectsCollapsed, setProjectsCollapsed] = useState(false);
+    const [isAnimatingProjects, setIsAnimatingProjects] = useState(false);
+    const [isRefreshingProjects, setIsRefreshingProjects] = useState(false);
     const { refresh } = useRefresh();
 
     // Delay text rendering for 0.2 seconds after expanding
@@ -43,14 +50,35 @@ function Sidebar() {
         }
     };
 
+    // Fetch active projects from API
+    const fetchActiveProjects = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/projects/active');
+            const data = await response.json();
+            // Sort projects by dateLastStarted (newest first)
+            const sortedProjects = data.sort((a, b) =>
+                new Date(b.dateLastStarted) - new Date(a.dateLastStarted)
+            );
+            setActiveProjects(sortedProjects);
+        } catch (error) {
+            console.error("Error fetching active projects:", error);
+        }
+    };
+
     // Fetch active instances on mount and whenever refresh is triggered
     useEffect(() => {
         fetchActiveInstances();
     }, [refresh]);
 
+    // Fetch on mount, when refresh changes and whenever refresh is triggered
+    useEffect(() => {
+        fetchActiveProjects();
+    }, [refresh]);
+
     // Fetch on component mount
     useEffect(() => {
         fetchActiveInstances();
+        fetchActiveProjects();
     }, []);
 
     // Toggles between collapsed and extended sidebar
@@ -71,6 +99,19 @@ function Sidebar() {
         }
     }, [collapsed, userToggledInstances]);
 
+    // Synchronize projectsCollapsed with collapsed state
+    useEffect(() => {
+        if (collapsed) {
+            // Collapse Active Projects when sidebar is collapsed
+            setProjectsCollapsed(true);
+        } else {
+            // Expand Active Projects only if the user hasn't manually collapsed them
+            if (!userToggledProjects) {
+                setProjectsCollapsed(false);
+            }
+        }
+    }, [collapsed, userToggledProjects]);
+
     // Toggle active instances function
     const toggleInstancesVisibility = () => {
         if (instancesCollapsed) {
@@ -90,6 +131,34 @@ function Sidebar() {
                 setUserToggledInstances(true); // Track user intent
             }, 150); // Match duration of CSS transition
         }
+    };
+
+    // Toggle active projects function
+    const toggleProjectsVisibility = () => {
+        if (projectsCollapsed) {
+            setIsAnimatingProjects(true); // Indicate animation start
+            setTimeout(() => {
+                setProjectsCollapsed(false); // Show the section
+                setIsAnimatingProjects(false); // End animation
+                setUserToggledProjects(false); // Reset user intent
+            }, 150); // Match duration of CSS transition
+        } else {
+            setIsAnimatingProjects(true); // Indicate animation start
+            setTimeout(() => {
+                setProjectsCollapsed(true); // Hide the section
+                setIsAnimatingProjects(false); // End animation
+                setUserToggledProjects(true); // Track user intent
+            }, 150); // Match duration of CSS transition
+        }
+    };
+
+    // Active Projects Refresh Logic
+    const handleRefreshProjects = () => {
+        setIsRefreshingProjects(true); // Start the refresh animation
+        fetchActiveProjects(); // Fetch updated active projects
+        setTimeout(() => {
+            setIsRefreshingProjects(false); // Stop the refresh animation after 500ms
+        }, 500);
     };
 
     // Sidebar CSS styles
@@ -170,8 +239,116 @@ function Sidebar() {
                     </li>
                 </ul>
 
-                {/* Active Instances Display */}
+                {/* Active Projects Display */}
                 <div className="mt-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                        {/* Project Title */}
+                        <div className="d-flex align-items-center" style={{ marginLeft: collapsed ? '15px' : '0px' }}>
+                            <FontAwesomeIcon icon={faBarsProgress} className="text-white me-2" />
+                            {!collapsed && delayRender && <h6 className="mb-0">Active Projects</h6>}
+                        </div>
+                        {/* Project Buttons (Refresh and Collapse/Expand) */}
+                        {!collapsed && delayRender && (
+                            <div>
+                                <FontAwesomeIcon
+                                    icon={faRotate}
+                                    className="text-white mx-2"
+                                    onClick={handleRefreshProjects} // Trigger the refresh logic
+                                    style={
+                                        isRefreshingProjects
+                                            ? { ...spinStyle, cursor: "pointer" } // Apply spin animation when refreshing
+                                            : { transition: "transform 0.5s", cursor: "pointer" } // Default style
+                                    }
+                                />
+                                <FontAwesomeIcon
+                                    icon={faChevronDown}
+                                    className="text-white"
+                                    onClick={toggleProjectsVisibility}
+                                    style={{
+                                        cursor: "pointer",
+                                        transition: "transform 0.5s",
+                                        transform: isAnimatingProjects || projectsCollapsed ? "rotate(-180deg)" : "rotate(0deg)"
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    {/* Project List */}
+                    <div style={{
+                        maxHeight: projectsCollapsed ? "0px" : "20vh",
+                        overflowY: activeProjects.length > 1 ? "auto" : "hidden",
+                        transition: "max-height 0.5s ease-in-out",
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none",
+                    }}>
+                        <div className="mt-2">
+                            {activeProjects.length === 0 ? (
+                                <div className="text-center d-flex justify-content-center align-items-center"
+                                style={{
+                                    fontSize: '0.65rem',
+                                    color: '#fff',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    <FontAwesomeIcon icon={faCircleInfo} className="me-2" />
+                                    No active projects at the moment.
+                                </div>
+                            ) : (
+                                activeProjects.map(project => (
+                                    // Project Item
+                                    <div key={project._id}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                                        style={cardStyle}>
+                                        {/* First Line: Project Name and Percentage */}
+                                        <div style={{ display: 'flex', width: '100%' }}>
+                                            {/* Project Name (3/4 of the width) */}
+                                            <div style={{ flex: 3, fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                <NavLink
+                                                    to={`/projects/${project._id}`}
+                                                    className="text-white text-decoration-none"
+                                                    title={project.name}
+                                                    style={{ color: "#fff" }}
+                                                >
+                                                    {project.name}
+                                                </NavLink>
+                                            </div>
+
+                                            {/* Project Percentage (1/4 of the width) */}
+                                            <div style={{
+                                                flex: 1,
+                                                textAlign: 'center',
+                                                color: '#fff',
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                            }}>
+                                                {`${Math.round(projectPercentages[project._id] || 0)}%`}
+                                            </div>
+                                        </div>
+
+                                        {/* Second Line: Progress Bar */}
+                                        <div style={{ width: '100%', height: '6px', backgroundColor: '#ccc', borderRadius: '3px', marginTop: '5px' }}>
+                                            <div
+                                                style={{
+                                                    width: `${projectPercentages[project._id] || 0}%`,
+                                                    height: '100%',
+                                                    backgroundColor: '#fff',
+                                                    borderRadius: '3px',
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Active Instances Display */}
+                <div className="mt-2">
                     {/* Active Instances Header */}
                     <div className="d-flex justify-content-between align-items-center">
                         {/* Conditionally show the "faCube" icon and text */}
@@ -209,43 +386,54 @@ function Sidebar() {
                         )}
                     </div>
                     {/* Active Instances List */}
-                    <div
-                        style={{
-                            maxHeight: instancesCollapsed ? "0px" : "20vh", // Set a maximum height for the active instances list
-                            overflowY: activeInstances.length > 1 ? "auto" : "hidden", // Enable scrolling if there are more than 3 active instances
-                            transition: "max-height 0.5s ease-in-out",
-                            scrollbarWidth: "none", // Firefox
-                            msOverflowStyle: "none", // Internet Explorer 10+
-                        }}
-                    >
+                    <div style={{
+                        maxHeight: instancesCollapsed ? "0px" : "20vh", // Set a maximum height for the active instances list
+                        overflowY: activeInstances.length > 1 ? "auto" : "hidden", // Enable scrolling if there are more than 3 active instances
+                        transition: "max-height 0.5s ease-in-out",
+                        scrollbarWidth: "none", // Firefox
+                        msOverflowStyle: "none", // Internet Explorer 10+
+                    }} >
                         <div className="mt-2">
-                            {activeInstances.map(instance => (
-                                <div
-                                    key={instance._id}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                                    style={cardStyle}
-                                >
-                                    <NavLink
-                                        to={`/instances/${instance._id}`}
-                                        className="text-white text-decoration-none"
-                                        title={instance.name}
-                                        style={{
-                                            display: "block",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            color: "#fff",
-                                            fontWeight: "bold",
-                                        }}
-                                    >
-                                        {instance.name}
-                                    </NavLink>
+                            {activeInstances.length === 0 ? (
+                                <div className="text-center d-flex justify-content-center align-items-center"
+                                style={{
+                                    fontSize: '0.65rem',
+                                    color: '#fff',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    <FontAwesomeIcon icon={faCircleInfo} className="me-2" />
+                                    No active instances at the moment.
                                 </div>
-                            ))}
+                            ) : (
+                                activeInstances.map(instance => (
+                                    <div
+                                        key={instance._id}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                                        style={cardStyle}
+                                    >
+                                        <NavLink
+                                            to={`/instances/${instance._id}`}
+                                            className="text-white text-decoration-none"
+                                            title={instance.name}
+                                            style={{
+                                                display: "block",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                color: "#fff",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            {instance.name}
+                                        </NavLink>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
-
                 </div>
 
                 <hr /> {/* Separating Line */}

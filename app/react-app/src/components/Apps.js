@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPassport, faChevronRight, faClock, faFolderPlus, faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
-import { useRefresh } from '../components/RefreshContext';
+import { useRefresh } from './RefreshContext';
 
 function Apps() {
     const [apps, setApps] = useState([]);
