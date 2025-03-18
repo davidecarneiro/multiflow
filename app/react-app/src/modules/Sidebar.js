@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDiagramProject, faCubes, faCube, faDatabase, faChartLine, faTerminal, faCaretSquareLeft, faRotate, faChevronDown, faBarsProgress } from '@fortawesome/free-solid-svg-icons';
+import { faDiagramProject, faCubes, faCube, faDatabase, faChartLine, faTerminal, faCaretSquareLeft, faRotate, faChevronDown, faBarsProgress, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import logo from './logo.png';
 import minLogo from './minLogo.png';
 import { NavLink } from 'react-router-dom';
@@ -282,53 +282,67 @@ function Sidebar() {
                         msOverflowStyle: "none",
                     }}>
                         <div className="mt-2">
-                            {activeProjects.map(project => (
-                                // Project Item
-                                <div key={project._id}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                                    style={cardStyle}>
-                                    {/* First Line: Project Name and Percentage */}
-                                    <div style={{ display: 'flex', width: '100%' }}>
-                                        {/* Project Name (3/4 of the width) */}
-                                        <div style={{ flex: 3, fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            <NavLink
-                                                to={`/projects/${project._id}`}
-                                                className="text-white text-decoration-none"
-                                                title={project.name}
-                                                style={{ color: "#fff" }}
-                                            >
-                                                {project.name}
-                                            </NavLink>
-                                        </div>
-
-                                        {/* Project Percentage (1/4 of the width) */}
-                                        <div style={{
-                                            flex: 1,
-                                            textAlign: 'center',
-                                            color: '#fff',
-                                            fontWeight: 'bold',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                        }}>
-                                            {`${Math.round(projectPercentages[project._id] || 0)}%`}
-                                        </div>
-                                    </div>
-
-                                    {/* Second Line: Progress Bar */}
-                                    <div style={{ width: '100%', height: '6px', backgroundColor: '#ccc', borderRadius: '3px', marginTop: '5px' }}>
-                                        <div
-                                            style={{
-                                                width: `${projectPercentages[project._id] || 0}%`,
-                                                height: '100%',
-                                                backgroundColor: '#fff',
-                                                borderRadius: '3px',
-                                            }}
-                                        ></div>
-                                    </div>
+                            {activeProjects.length === 0 ? (
+                                <div className="text-center d-flex justify-content-center align-items-center"
+                                style={{
+                                    fontSize: '0.65rem',
+                                    color: '#fff',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    <FontAwesomeIcon icon={faCircleInfo} className="me-2" />
+                                    No active projects at the moment.
                                 </div>
-                            ))}
+                            ) : (
+                                activeProjects.map(project => (
+                                    // Project Item
+                                    <div key={project._id}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                                        style={cardStyle}>
+                                        {/* First Line: Project Name and Percentage */}
+                                        <div style={{ display: 'flex', width: '100%' }}>
+                                            {/* Project Name (3/4 of the width) */}
+                                            <div style={{ flex: 3, fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                <NavLink
+                                                    to={`/projects/${project._id}`}
+                                                    className="text-white text-decoration-none"
+                                                    title={project.name}
+                                                    style={{ color: "#fff" }}
+                                                >
+                                                    {project.name}
+                                                </NavLink>
+                                            </div>
+
+                                            {/* Project Percentage (1/4 of the width) */}
+                                            <div style={{
+                                                flex: 1,
+                                                textAlign: 'center',
+                                                color: '#fff',
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                            }}>
+                                                {`${Math.round(projectPercentages[project._id] || 0)}%`}
+                                            </div>
+                                        </div>
+
+                                        {/* Second Line: Progress Bar */}
+                                        <div style={{ width: '100%', height: '6px', backgroundColor: '#ccc', borderRadius: '3px', marginTop: '5px' }}>
+                                            <div
+                                                style={{
+                                                    width: `${projectPercentages[project._id] || 0}%`,
+                                                    height: '100%',
+                                                    backgroundColor: '#fff',
+                                                    borderRadius: '3px',
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -372,43 +386,54 @@ function Sidebar() {
                         )}
                     </div>
                     {/* Active Instances List */}
-                    <div
-                        style={{
-                            maxHeight: instancesCollapsed ? "0px" : "20vh", // Set a maximum height for the active instances list
-                            overflowY: activeInstances.length > 1 ? "auto" : "hidden", // Enable scrolling if there are more than 3 active instances
-                            transition: "max-height 0.5s ease-in-out",
-                            scrollbarWidth: "none", // Firefox
-                            msOverflowStyle: "none", // Internet Explorer 10+
-                        }}
-                    >
+                    <div style={{
+                        maxHeight: instancesCollapsed ? "0px" : "20vh", // Set a maximum height for the active instances list
+                        overflowY: activeInstances.length > 1 ? "auto" : "hidden", // Enable scrolling if there are more than 3 active instances
+                        transition: "max-height 0.5s ease-in-out",
+                        scrollbarWidth: "none", // Firefox
+                        msOverflowStyle: "none", // Internet Explorer 10+
+                    }} >
                         <div className="mt-2">
-                            {activeInstances.map(instance => (
-                                <div
-                                    key={instance._id}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                                    style={cardStyle}
-                                >
-                                    <NavLink
-                                        to={`/instances/${instance._id}`}
-                                        className="text-white text-decoration-none"
-                                        title={instance.name}
-                                        style={{
-                                            display: "block",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            color: "#fff",
-                                            fontWeight: "bold",
-                                        }}
-                                    >
-                                        {instance.name}
-                                    </NavLink>
+                            {activeInstances.length === 0 ? (
+                                <div className="text-center d-flex justify-content-center align-items-center"
+                                style={{
+                                    fontSize: '0.65rem',
+                                    color: '#fff',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    <FontAwesomeIcon icon={faCircleInfo} className="me-2" />
+                                    No active instances at the moment.
                                 </div>
-                            ))}
+                            ) : (
+                                activeInstances.map(instance => (
+                                    <div
+                                        key={instance._id}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(0.95)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                                        style={cardStyle}
+                                    >
+                                        <NavLink
+                                            to={`/instances/${instance._id}`}
+                                            className="text-white text-decoration-none"
+                                            title={instance.name}
+                                            style={{
+                                                display: "block",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                color: "#fff",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            {instance.name}
+                                        </NavLink>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
-
                 </div>
 
                 <hr /> {/* Separating Line */}
