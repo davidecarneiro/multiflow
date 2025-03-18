@@ -70,7 +70,7 @@ function Sidebar() {
         fetchActiveInstances();
     }, [refresh]);
 
-    // Fetch on mount & when refresh changes
+    // Fetch on mount, when refresh changes and whenever refresh is triggered
     useEffect(() => {
         fetchActiveProjects();
     }, [refresh]);
@@ -196,22 +196,6 @@ function Sidebar() {
         transform: "rotate(360deg)",
         transition: "transform 0.5s",
     };
-
-    // Progress bar CSS
-    const progressBarContainer = {
-        position: 'relative',
-        height: '5px',
-        backgroundColor: '#eee',
-        borderRadius: '5px',
-        marginTop: '10px',
-    };
-
-    const progressBar = (percentage) => ({
-        width: `${percentage}%`,
-        height: '100%',
-        backgroundColor: '#4caf50',
-        borderRadius: '5px',
-    });
 
     return (
         <div style={{ marginRight: collapsed ? '80px' : '250px', transition: 'margin-right .5s' }}>

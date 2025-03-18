@@ -5,9 +5,8 @@ import { useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiagramProject, faClock, faFolderPlus, faStop, faPlay, faPenToSquare, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 import ProgressBar from 'react-bootstrap/ProgressBar';
-
 import { ProgressContext } from './ProgressContext';
-
+import { useRefresh } from './RefreshContext';
 
 function ProjectDetails() {
     const { id } = useParams();
@@ -16,7 +15,7 @@ function ProjectDetails() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
-
+    const { triggerRefresh } = useRefresh();
 
     // Get project details
     const fetchProjectDetails = useCallback(async () => {
@@ -52,6 +51,9 @@ function ProjectDetails() {
                     // Start project
                     await axios.put(`http://localhost:3001/projects/start/${projectId}`);
                     console.log("--> Play Project");
+
+                    // Trigger a refresh on the Sidebar
+                    triggerRefresh();
 
                     // Start all streams related to this project
                     for (const stream of project.streams) {
@@ -260,7 +262,7 @@ function ProjectDetails() {
                         <h5 className='mt-3' style={{ fontWeight: '650' }}>Project Status</h5>
                         <div className='card mt-2 col-md-12' style={{ backgroundColor: '#F5F6F5', borderRadius: '8px' }}>
                             <div className='card-body d-flex align-items-center'>
-                                <FontAwesomeIcon onClick={() => handleProjectStatus(project._id, project.status)} icon={project.status ? faStop : faPlay} size="2x" style={{ cursor: 'pointer' }} />
+                                <FontAwesomeIcon onClick={() => { handleProjectStatus(project._id, project.status); triggerRefresh(); }} icon={project.status ? faStop : faPlay} size="2x" style={{ cursor: 'pointer' }} />
                                 <span className='ms-4'>{project.status ? 'Project is currently running' : 'Project is currently paused'}</span>
                                 {/* Progress bar for project completion */}
                                 <div className='ms-auto' style={{ width: '60%' }}>

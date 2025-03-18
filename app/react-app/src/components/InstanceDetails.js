@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useRefresh } from '../components/RefreshContext';
+import { useRefresh } from './RefreshContext';
 import { faCube, faCubes, faClock, faFolderPlus, faPenToSquare, faTrash, faChevronDown, faCopy, faGear } from '@fortawesome/free-solid-svg-icons';
 
 function InstanceDetails() {
