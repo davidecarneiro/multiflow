@@ -5,6 +5,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
+    "dockerode": "^4.0.4",
     "express": "^4.19.2",
     "express-sse": "^0.5.3",
     "http": "0.0.1-security",

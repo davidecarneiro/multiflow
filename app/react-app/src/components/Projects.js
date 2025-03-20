@@ -12,9 +12,27 @@ function Projects() {
   const [loading, setLoading] = useState(true);
   const [expandedProjects, setExpandedProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadingProjects, setLoadingProjects] = useState({});
   const navigate = useNavigate();
   const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
   const { triggerRefresh } = useRefresh();
+
+  useEffect(() => {
+    if (!window.projectWebSockets) {
+      window.projectWebSockets = {};
+    }
+
+    return () => {
+      if (window.projectWebSockets) {
+        Object.keys(window.projectWebSockets).forEach(projectId => {
+          const ws = window.projectWebSockets[projectId];
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+        });
+      }
+    };
+  }, []);
 
   // Get all projects
   useEffect(() => {
@@ -35,65 +53,64 @@ function Projects() {
 
   // Handle WebSocket messages
   const handleWebSocketMessage = useCallback((projectId, data) => {
-    const parsedData = JSON.parse(data);
+    try {
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
-    if (Array.isArray(parsedData.streams) && parsedData.streams.length > 0) {
-      const minPercentage = Math.min(...parsedData.streams.map(stream => parseFloat(stream.percentage)));
-      console.log('Minimum percentage:', minPercentage);
+      if (Array.isArray(parsedData.streams) && parsedData.streams.length > 0) {
+        const minPercentage = Math.min(...parsedData.streams.map(stream => parseFloat(stream.percentage)));
+        console.log('Minimum percentage:', minPercentage);
 
-      setProjectPercentages((prev) => ({
-        ...prev,
-        [projectId]: parseFloat(minPercentage),
-      }));
+        setProjectPercentages((prev) => ({
+          ...prev,
+          [projectId]: parseFloat(minPercentage),
+        }));
 
-      const newStreamPercentages = {};
-      parsedData.streams.forEach(stream => {
-        newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
-      });
+        const newStreamPercentages = {};
+        parsedData.streams.forEach(stream => {
+          newStreamPercentages[stream.streamId] = parseFloat(stream.percentage);
+        });
 
-      setStreamPercentages(prev => ({
-        ...prev,
-        ...newStreamPercentages,
-      }));
+        setStreamPercentages(prev => ({
+          ...prev,
+          ...newStreamPercentages,
+        }));
 
-      if (minPercentage === 100) {
-        handleProjectStatus(projectId, true);
-      }
-    } else {
-      console.log('No streams available');
-    }
-  }, [setProjectPercentages, setStreamPercentages]);
-
-  // Establish WebSocket connection
-  useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8082');
-
-    ws.onopen = () => {
-      console.log('WebSocket connection established');
-    };
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === 'progress-feedback') {
-        const projectId = projects.find(p => p._id); // Find the relevant project ID from the message
-        if (projectId) {
-          handleWebSocketMessage(projectId, event.data);
+        if (minPercentage === 100) {
+          handleProjectStatus(projectId, true);
         }
+      } else if (parsedData.status === 'stopped' && parsedData.projectId === projectId) {
+        console.log(`Received confirmation that project ${projectId} was stopped`);
+        
+        setProjects(prevProjects => 
+          prevProjects.map(p => 
+            p._id === projectId ? { ...p, status: false } : p
+          )
+        );
+        
+        setProjectPercentages(prev => {
+          const newPercentages = { ...prev };
+          delete newPercentages[projectId];
+          return newPercentages;
+        });
+        
+        setStreamPercentages(prev => {
+          const newPercentages = { ...prev };
+          // Remover todas as streams associadas a este projeto
+          const project = projects.find(p => p._id === projectId);
+          if (project) {
+            project.streams.forEach(stream => {
+              delete newPercentages[stream._id];
+            });
+          }
+          return newPercentages;
+        });
+      } else {
+        console.log('No streams available or different message format:', parsedData);
       }
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, [projects, handleWebSocketMessage]);
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
+    }
+  }, [setProjectPercentages, setStreamPercentages, projects]);
 
   // Function to start a stream
   const startStream = async (streamId) => {
@@ -118,62 +135,148 @@ function Projects() {
   // Function to start and stop project (using endpoints)
   const handleProjectStatus = async (projectId, status) => {
     try {
+      setLoadingProjects(prev => ({ ...prev, [projectId]: true }));
+      
       if (status) {
-        // Stop project and its streams
+        console.log("--> Stop Project:", projectId);
+        
+        if (window.projectWebSockets && window.projectWebSockets[projectId]) {
+          const ws = window.projectWebSockets[projectId];
+          
+          if (ws.readyState === WebSocket.OPEN) {
+            console.log("Enviando comando STOP para o WebSocket");
+            ws.send(`STOP:${projectId}`);
+            
+            const stopConfirmation = await new Promise((resolve) => {
+              const messageHandler = (event) => {
+                try {
+                  const data = JSON.parse(event.data);
+                  console.log("Mensagem recebida após comando STOP:", data);
+                  
+                  if (data.status === 'stopped' && data.projectId === projectId) {
+                    ws.removeEventListener('message', messageHandler);
+                    resolve(data);
+                  }
+                } catch (error) {
+                  console.error('Erro ao processar mensagem do WebSocket:', error);
+                }
+              };
+              
+              ws.addEventListener('message', messageHandler);
+              
+              setTimeout(() => {
+                ws.removeEventListener('message', messageHandler);
+                resolve({ status: 'timeout', projectId });
+              }, 5000);
+            });
+            
+            console.log('Confirmação de parada recebida:', stopConfirmation);
+          }
+          
+          ws.close();
+          delete window.projectWebSockets[projectId];
+          console.log(`WebSocket connection for project ${projectId} closed`);
+        }
+        
         await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
-        console.log("--> Stop Project");
-        status = false;
-
-        // Stop all streams related to this project
+        
         const project = projects.find(p => p._id === projectId);
         if (project) {
           for (const stream of project.streams) {
             await stopStream(stream._id);
           }
         }
-      } else {
-        // Start project and its streams
-        await axios.put(`http://localhost:3001/projects/start/${projectId}`);
-        console.log("--> Play Project");
-
-        // Trigger a refresh on the Sidebar
+        
+        setProjects(prevProjects => 
+          prevProjects.map(p => 
+            p._id === projectId ? { ...p, status: false } : p
+          )
+        );
+        
+        setProjectPercentages(prev => {
+          const newPercentages = { ...prev };
+          delete newPercentages[projectId];
+          return newPercentages;
+        });
+        
+        setStreamPercentages(prev => {
+          const newPercentages = { ...prev };
+          if (project) {
+            project.streams.forEach(stream => {
+              delete newPercentages[stream._id];
+            });
+          }
+          return newPercentages;
+        });
+        
         triggerRefresh();
-
-        const ws = new WebSocket('ws://localhost:8082');
-
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-          ws.send(projectId);
-        };
-
-        ws.onmessage = async (event) => {
-          const message = JSON.parse(event.data);
-          if (message.type === 'progress-feedback') {
-            handleWebSocketMessage(projectId, event.data);
-          };
-        }
-
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
-        };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-
-        // Start all streams related to this project
+        
+      } else {
+        console.log("--> Play Project:", projectId);
+        
+        await axios.put(`http://localhost:3001/projects/start/${projectId}`);
+        
         const project = projects.find(p => p._id === projectId);
         if (project) {
           for (const stream of project.streams) {
             await startStream(stream._id);
           }
         }
+        
+        setProjects(prevProjects => 
+          prevProjects.map(p => 
+            p._id === projectId ? { ...p, status: true, dateLastStarted: new Date() } : p
+          )
+        );
+
+        if (window.projectWebSockets[projectId]) {
+          // Fechar conexão existente se houver
+          const existingWs = window.projectWebSockets[projectId];
+          if (existingWs.readyState === WebSocket.OPEN) {
+            existingWs.close();
+          }
+        }
+        
+        const ws = new WebSocket('ws://localhost:8082');
+        window.projectWebSockets[projectId] = ws;
+
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          ws.send(projectId);
+        };
+
+        ws.onmessage = (event) => {
+          console.log('Message received from server:', event.data);
+          handleWebSocketMessage(projectId, event.data);
+        };
+
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+          if (window.projectWebSockets[projectId] === ws) {
+            delete window.projectWebSockets[projectId];
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          alert('Erro na conexão WebSocket. Verifique o console para mais detalhes.');
+        };
+        
+        // 5. Trigger refresh para atualizar a sidebar
+        triggerRefresh();
       }
 
       // Refresh project list after updating status
-      fetchProjects();
+      await fetchProjects();
     } catch (error) {
       console.error('Error updating project status:', error);
+      alert(`Erro ao ${status ? 'parar' : 'iniciar'} o projeto: ${error.message}`);
+    } finally {
+      setLoadingProjects(prev => {
+        const newLoading = { ...prev };
+        delete newLoading[projectId];
+        return newLoading;
+      });
     }
   };
 
@@ -361,16 +464,22 @@ function Projects() {
                                 style={{ width: "80%", height: "20px" }}
                               />
                               <div className="col-md-2 d-flex align-items-center justify-content-end">
-                                <FontAwesomeIcon
-                                  onClick={() => { handleProjectStatus(project._id, project.status); triggerRefresh(); }}
-                                  icon={project.status ? faStop : faPlay}
-                                  size="2x"
-                                  style={{
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                  }}
-                                />
+                                {loadingProjects[project._id] ? (
+                                  <div className="spinner-border spinner-border-sm" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                  </div>
+                                ) : (
+                                  <FontAwesomeIcon
+                                    onClick={() => handleProjectStatus(project._id, project.status)}
+                                    icon={project.status ? faStop : faPlay}
+                                    size="2x"
+                                    style={{
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      justifyContent: "center",
+                                    }}
+                                  />
+                                )}
                               </div>
                             </div>
                           </div>
