@@ -95,7 +95,7 @@ function Projects() {
         
         setStreamPercentages(prev => {
           const newPercentages = { ...prev };
-          // Remover todas as streams associadas a este projeto
+          // Remove all streams associated with this project
           const project = projects.find(p => p._id === projectId);
           if (project) {
             project.streams.forEach(stream => {
@@ -144,21 +144,21 @@ function Projects() {
           const ws = window.projectWebSockets[projectId];
           
           if (ws.readyState === WebSocket.OPEN) {
-            console.log("Enviando comando STOP para o WebSocket");
+            console.log("Sending STOP command to WebSocket");
             ws.send(`STOP:${projectId}`);
             
             const stopConfirmation = await new Promise((resolve) => {
               const messageHandler = (event) => {
                 try {
                   const data = JSON.parse(event.data);
-                  console.log("Mensagem recebida após comando STOP:", data);
+                  console.log("Message received after STOP command:", data);
                   
                   if (data.status === 'stopped' && data.projectId === projectId) {
                     ws.removeEventListener('message', messageHandler);
                     resolve(data);
                   }
                 } catch (error) {
-                  console.error('Erro ao processar mensagem do WebSocket:', error);
+                  console.error('Error processing WebSocket message:', error);
                 }
               };
               
@@ -170,7 +170,7 @@ function Projects() {
               }, 5000);
             });
             
-            console.log('Confirmação de parada recebida:', stopConfirmation);
+            console.log('Stop confirmation received:', stopConfirmation);
           }
           
           ws.close();
@@ -230,7 +230,7 @@ function Projects() {
         );
 
         if (window.projectWebSockets[projectId]) {
-          // Fechar conexão existente se houver
+          // Close existing connection if there is one
           const existingWs = window.projectWebSockets[projectId];
           if (existingWs.readyState === WebSocket.OPEN) {
             existingWs.close();
@@ -259,10 +259,10 @@ function Projects() {
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
-          alert('Erro na conexão WebSocket. Verifique o console para mais detalhes.');
+          alert('WebSocket connection error. Check the console for more details.');
         };
         
-        // 5. Trigger refresh para atualizar a sidebar
+        // 5. Trigger refresh to update the sidebar
         triggerRefresh();
       }
 
@@ -270,7 +270,7 @@ function Projects() {
       await fetchProjects();
     } catch (error) {
       console.error('Error updating project status:', error);
-      alert(`Erro ao ${status ? 'parar' : 'iniciar'} o projeto: ${error.message}`);
+      alert(`Error ${status ? 'stopping' : 'starting'} the project: ${error.message}`);
     } finally {
       setLoadingProjects(prev => {
         const newLoading = { ...prev };

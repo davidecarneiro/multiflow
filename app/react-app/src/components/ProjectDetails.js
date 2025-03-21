@@ -139,21 +139,21 @@ function ProjectDetails() {
                     const ws = window.projectWebSockets[projectId];
                     
                     if (ws.readyState === WebSocket.OPEN) {
-                        console.log("Enviar o comando STOP para o WebSocket");
+                        console.log("Send the STOP command to WebSocket");
                         ws.send(`STOP:${projectId}`);
                         
                         const stopConfirmation = await new Promise((resolve) => {
                             const messageHandler = (event) => {
                                 try {
                                     const data = JSON.parse(event.data);
-                                    console.log("Mensagem recebida após comando STOP:", data);
+                                    console.log("Message received after STOP command:", data);
                                     
                                     if (data.status === 'stopped' && data.projectId === projectId) {
                                         ws.removeEventListener('message', messageHandler);
                                         resolve(data);
                                     }
                                 } catch (error) {
-                                    console.error('Erro ao processar mensagem do WebSocket:', error);
+                                    console.error('Error processing WebSocket message:', error);
                                 }
                             };
                             
@@ -165,7 +165,7 @@ function ProjectDetails() {
                             }, 5000);
                         });
                         
-                        console.log('Confirmação de parada recebida:', stopConfirmation);
+                        console.log('Stop confirmation received:', stopConfirmation);
                     }
                     
                     ws.close();
@@ -247,10 +247,10 @@ function ProjectDetails() {
 
                 ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
-                    alert('Erro na conexão WebSocket. Verifique o console para mais detalhes.');
+                    alert('WebSocket connection error. Check the console for more details.');
                 };
                 
-                // 5. Trigger refresh para atualizar a sidebar
+                // 5. Trigger refresh to update the sidebar
                 triggerRefresh();
             }
 
@@ -258,7 +258,7 @@ function ProjectDetails() {
             await fetchProjectDetails();
         } catch (error) {
             console.error('Error updating project status:', error);
-            alert(`Erro ao ${status ? 'parar' : 'iniciar'} o projeto: ${error.message}`);
+            alert(`Error ${status ? 'stopping' : 'starting'} the project: ${error.message}`);
         } finally {
             setLoadingProject(false);
         }
@@ -278,7 +278,7 @@ function ProjectDetails() {
         }
 
         try {
-            // Fechar WebSocket se estiver aberto
+            // Close WebSocket if it's open
             if (window.projectWebSockets && window.projectWebSockets[id]) {
                 const ws = window.projectWebSockets[id];
                 if (ws.readyState === WebSocket.OPEN) {
@@ -292,7 +292,7 @@ function ProjectDetails() {
             navigate('/');
         } catch (error) {
             console.error('Error deleting project:', error);
-            alert(`Erro ao excluir o projeto: ${error.message}`);
+            alert(`Error deleting the project: ${error.message}`);
         }
     };
 

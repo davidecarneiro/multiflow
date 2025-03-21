@@ -28,7 +28,7 @@ const kafka = new Kafka({
   brokers: ['kafka:9092']
 });
 
-// Inicializer
+// Initializer
 const producer = kafka.producer();
 const admin = kafka.admin();
 
@@ -81,7 +81,7 @@ const deleteKafkaTopic = async (topic) => {
     
     await admin.deleteTopics({
       topics: [topic],
-      timeout: 5000, // 5 segundos de timeout
+      timeout: 5000, // 5 seconds timeout
     });
     
     console.log(`Successfully deleted Kafka topic: ${topic}`);
@@ -101,9 +101,9 @@ mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
 // Handle MongoDB connection errors and successful connection
-db.on('error', console.error.bind(console, 'Erro de conexão ao MongoDB:'));
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 db.once('open', () => {
-  console.log('Conexão com o MongoDB estabelecida com sucesso.');
+  console.log('MongoDB connection successfully established.');
 });
 
 // Define the schema for the "Streams" collection
@@ -359,10 +359,10 @@ async function sendMessagesToKafkaTopic(topic, messages, ws, progressData) {
         }
       }
     } catch (error) {
-      console.error('Erro ao processar arquivo CSV:', error);
-      // Enviar erro para o cliente
+      console.error('Error processing CSV file:', error);
+      // Send error to client
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ error: `Erro ao processar arquivo CSV: ${error.message}` }));
+        ws.send(JSON.stringify({ error: `Error processing CSV file: ${error.message}` }));
       }
     }
   }
@@ -424,12 +424,12 @@ wss.on('connection', (ws) => {
       ws.send(JSON.stringify({ type: 'docker-logs-cleared' }));
       console.log('Logs cleared.');
     }
-    // Verificar se a mensagem é um comando para parar um projeto
+    // Check if the message is a command to stop a project
     else if (messageStr.startsWith('STOP:')) {
       const projectId = messageStr.substring(5);
       console.log(`Received stop command for project ${projectId}`);
       
-      // Parar todas as streams associadas ao projeto
+      // Stop all streams associated with the project
       const result = await stopProjectStreams(projectId);
       
       if (result.stopped) {
@@ -448,7 +448,7 @@ wss.on('connection', (ws) => {
       console.log('Received project ID:', clientProjectId);
 
       if (projectConnections.has(clientProjectId)) {
-        // Se já existe uma conexão para este projeto, feche-a
+        // If there's already a connection for this project, close it
         const oldWs = projectConnections.get(clientProjectId);
         if (oldWs && oldWs.readyState === WebSocket.OPEN) {
           oldWs.close();
@@ -459,7 +459,7 @@ wss.on('connection', (ws) => {
       try {
         const streams = await Stream.find({ projectId: clientProjectId }).exec();
         if (streams.length === 0) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Nenhuma stream encontrada para o projeto' }));
+          ws.send(JSON.stringify({ type: 'error', message: 'No streams found for the project' }));
           return;
         }
 
@@ -470,12 +470,12 @@ wss.on('connection', (ws) => {
           if (stream) {
             sendMessagesToKafkaTopic(stream.topic, [stream], ws, progressData);
           } else {
-            ws.send(JSON.stringify({ type: 'error', message: 'Erro ao processar a stream' }));
+            ws.send(JSON.stringify({ type: 'error', message: 'Error processing the stream' }));
           }
         }
       } catch (error) {
-        console.error('Erro ao consultar o MongoDB:', error);
-        ws.send(JSON.stringify({ type: 'error', message: 'Erro ao consultar o MongoDB: ' + error.message }));
+        console.error('Error querying MongoDB:', error);
+        ws.send(JSON.stringify({ type: 'error', message: 'Error querying MongoDB: ' + error.message }));
       }
     }
   });
@@ -492,7 +492,7 @@ wss.on('connection', (ws) => {
     
     for (const [streamId, streamData] of activeStreams.entries()) {
       if (streamData.ws === ws) {
-        stopStream(streamId, false);  // Não excluir o tópico quando o cliente desconecta
+        stopStream(streamId, false);  // Don't delete the topic when the client disconnects
       }
     }
     
@@ -511,7 +511,7 @@ wss.on('connection', (ws) => {
 
 const shutdown = async () => {
   try {
-    // Desconectar clientes Kafka
+    // Disconnect Kafka clients
     await producer.disconnect();
     await admin.disconnect();
     console.log('Kafka clients disconnected');
