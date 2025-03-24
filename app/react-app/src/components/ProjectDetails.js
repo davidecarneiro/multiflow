@@ -15,24 +15,47 @@ function ProjectDetails() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [loadingProject, setLoadingProject] = useState(false);
+    const [stoppingInProgress, setStoppingInProgress] = useState(false);
     const { projectPercentages, setProjectPercentages, streamPercentages, setStreamPercentages } = useContext(ProgressContext);
-    const { triggerRefresh } = useRefresh();
+    const { triggerRefresh } = useRefresh();  
 
-    useEffect(() => {
-        if (!window.projectWebSockets) {
-            window.projectWebSockets = {};
+    // Functions to manage completed projects in localStorage
+    const loadCompletedProjects = () => {
+        try {
+            const completedProjectsJSON = localStorage.getItem('completedProjects');
+            return completedProjectsJSON ? JSON.parse(completedProjectsJSON) : {};
+        } catch (error) {
+            console.error('Error loading completed projects from localStorage:', error);
+            return {};
         }
+    };
+    
+    const saveCompletedProject = (projectId) => {
+        try {
+            const completedProjects = loadCompletedProjects();
+            completedProjects[projectId] = true;
+            localStorage.setItem('completedProjects', JSON.stringify(completedProjects));
+            console.log(`Project ${projectId} marked as completed in localStorage`);
+        } catch (error) {
+            console.error('Error saving completed project to localStorage:', error);
+        }
+    };
+    
+    const isProjectCompleted = (projectId) => {
+        const completedProjects = loadCompletedProjects();
+        return completedProjects[projectId] === true;
+    };
 
-        return () => {
-            if (window.projectWebSockets && window.projectWebSockets[id]) {
-                const ws = window.projectWebSockets[id];
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.close();
-                }
-                delete window.projectWebSockets[id];
-            }
-        };
-    }, [id]);
+    const removeCompletedProject = (projectId) => {
+        try {
+            const completedProjects = loadCompletedProjects();
+            delete completedProjects[projectId];
+            localStorage.setItem('completedProjects', JSON.stringify(completedProjects));
+            console.log(`Project ${projectId} removed from completed projects in localStorage`);
+        } catch (error) {
+            console.error('Error updating completed projects in localStorage:', error);
+        }
+    };
 
     // Get project details
     const fetchProjectDetails = useCallback(async () => {
@@ -50,6 +73,42 @@ function ProjectDetails() {
         fetchProjectDetails();
     }, [fetchProjectDetails]);
 
+
+    // Function to start a stream
+    const startStream = async (streamId) => {
+        try {
+            await axios.put(`http://localhost:3001/streams/start/${streamId}`);
+            console.log(`Stream ${streamId} started`);
+        } catch (error) {
+            console.error(`Error starting stream ${streamId}:`, error);
+        }
+    };
+
+    // Function to stop a stream
+    const stopStream = async (streamId) => {
+        try {
+            await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
+            console.log(`Stream ${streamId} stopped`);
+        } catch (error) {
+            console.error(`Error stopping stream ${streamId}:`, error);
+        }
+    };
+
+    // useEffect to monitor percentages
+    useEffect(() => {
+        // If the project is loaded and the percentage is 100%
+        if (project && project.status && projectPercentages[project._id] >= 100) {
+            console.log('Project reached 100% - stopping automatically');
+            
+            // Mark the project as completed in localStorage
+            saveCompletedProject(project._id);
+            
+            // Stop the project
+            handleProjectStatus(project._id, true);
+        }
+    }, [project, projectPercentages]);
+
+  
     // Function to handle WebSocket messages
     const handleWebSocketMessage = useCallback((projectId, data) => {
         try {
@@ -74,16 +133,83 @@ function ProjectDetails() {
                     ...newStreamPercentages,
                 }));
 
-                if (minPercentage === 100) {
-                    handleProjectStatus(projectId, true);
+                // If the project reaches 100%, stop the project
+                if (minPercentage >= 100) {
+                    console.log('Project completed! Stopping project...');
+                    
+                    // Mark the project as completed in localStorage
+                    saveCompletedProject(projectId);
+                    
+                    // Avoid multiple calls to stop the project
+                    if (!stoppingInProgress) {
+                        setStoppingInProgress(true);
+                        
+                        // Update the visual state IMMEDIATELY before calling the API
+                        setProject(prevProject => {
+                            if (prevProject && prevProject._id === projectId) {
+                                return { ...prevProject, status: false };
+                            }
+                            return prevProject;
+                        });
+                        
+                        // Call the API to stop the project
+                        axios.put(`http://localhost:3001/projects/stop/${projectId}`)
+                            .then(() => {
+                                console.log('Project stopped successfully after completion');
+                                
+                                // Stop all streams associated with the project
+                                if (project) {
+                                    project.streams.forEach(stream => {
+                                        stopStream(stream._id);
+                                    });
+                                }
+                                
+                                // Close the WebSocket
+                                if (window.projectWebSockets && window.projectWebSockets[projectId]) {
+                                    const ws = window.projectWebSockets[projectId];
+                                    if (ws.readyState === WebSocket.OPEN) {
+                                        ws.close();
+                                    }
+                                    delete window.projectWebSockets[projectId];
+                                }
+                                
+                                // Clear the percentages
+                                setProjectPercentages(prev => {
+                                    const newPercentages = { ...prev };
+                                    delete newPercentages[projectId];
+                                    return newPercentages;
+                                });
+                                
+                                setStreamPercentages(prev => {
+                                    const newPercentages = { ...prev };
+                                    if (project) {
+                                        project.streams.forEach(stream => {
+                                            delete newPercentages[stream._id];
+                                        });
+                                    }
+                                    return newPercentages;
+                                });
+                                
+                                // Update project details
+                                fetchProjectDetails();
+                            })
+                            .catch(error => {
+                                console.error('Error stopping project after completion:', error);
+                            })
+                            .finally(() => {
+                                setStoppingInProgress(false);
+                            });
+                    }
                 }
             } else if (parsedData.status === 'stopped' && parsedData.projectId === projectId) {
                 console.log(`Received confirmation that project ${projectId} was stopped`);
                 
+                // Update the local project state
                 setProject(prevProject => 
                     prevProject && prevProject._id === projectId ? { ...prevProject, status: false } : prevProject
                 );
                 
+                // Clear the percentages
                 setProjectPercentages(prev => {
                     const newPercentages = { ...prev };
                     delete newPercentages[projectId];
@@ -105,43 +231,126 @@ function ProjectDetails() {
         } catch (error) {
             console.error('Error processing WebSocket message:', error);
         }
-    }, [setProjectPercentages, setStreamPercentages, project]);
+    }, [setProjectPercentages, setStreamPercentages, project, fetchProjectDetails, stopStream, stoppingInProgress]);
 
-    // Function to start a stream
-    const startStream = async (streamId) => {
-        try {
-            await axios.put(`http://localhost:3001/streams/start/${streamId}`);
-            console.log(`Stream ${streamId} started`);
-        } catch (error) {
-            console.error(`Error starting stream ${streamId}:`, error);
-        }
-    };
 
-    // Function to stop a stream
-    const stopStream = async (streamId) => {
-        try {
-            await axios.put(`http://localhost:3001/streams/stop/${streamId}`);
-            console.log(`Stream ${streamId} stopped`);
-        } catch (error) {
-            console.error(`Error stopping stream ${streamId}:`, error);
+    // Modify useEffect for WebSockets management
+    useEffect(() => {
+        if (!window.projectWebSockets) {
+            window.projectWebSockets = {};
         }
-    };
+        
+        // Only set up WebSocket when the project is loaded, active
+        // and there is NO WebSocket connection already established for this project
+        if (project && project.status && !window.projectWebSockets[id]) {
+            console.log('Checking if project is completed before creating WebSocket', id);
+            
+            // Check if the project has already been marked as completed
+            if (isProjectCompleted(id)) {
+                console.log('Project marked as completed in localStorage, not creating WebSocket');
+                
+                // Update the project state to stopped
+                setProject(prevProject => {
+                    if (prevProject) {
+                        return { ...prevProject, status: false };
+                    }
+                    return prevProject;
+                });
+                
+                // Update the backend to reflect that the project is stopped
+                axios.put(`http://localhost:3001/projects/stop/${id}`)
+                    .then(() => {
+                        console.log('API call to stop completed project successful');
+                        
+                        // Stop all streams associated with the project
+                        if (project) {
+                            project.streams.forEach(stream => {
+                                stopStream(stream._id);
+                            });
+                        }
+                        
+                        // Update project details
+                        fetchProjectDetails();
+                    })
+                    .catch(error => {
+                        console.error('Error stopping completed project:', error);
+                    });
+                
+                return;
+            }
+            
+            console.log('Creating new WebSocket for project', id);
+            const ws = new WebSocket('ws://localhost:8082');
+            window.projectWebSockets[id] = ws;
+            
+            ws.onopen = () => {
+                console.log('WebSocket connection established for project', id);
+                ws.send(id);
+            };
+            
+            ws.onmessage = (event) => {
+                console.log('Message received from server:', event.data);
+                handleWebSocketMessage(id, event.data);
+                
+                // Check if the message indicates that the project is completed
+                try {
+                    const parsedData = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                    
+                    if (Array.isArray(parsedData.streams) && parsedData.streams.length > 0) {
+                        const minPercentage = Math.min(...parsedData.streams.map(stream => parseFloat(stream.percentage)));
+                        
+                        // If the project reaches 100%, mark as completed in localStorage
+                        if (minPercentage >= 100) {
+                            console.log('Marking project as completed in localStorage');
+                            saveCompletedProject(id);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error processing WebSocket message for completion check:', error);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket connection closed for project', id);
+                if (window.projectWebSockets[id] === ws) {
+                    delete window.projectWebSockets[id];
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        } else if (project && project.status) {
+            console.log('Using existing WebSocket for project', id);
+        }
+        
+        // Don't automatically close WebSockets when unmounting
+        return () => {};
+    }, [id, project, setProjectPercentages, setStreamPercentages, handleWebSocketMessage, stopStream, fetchProjectDetails]);
+
 
     // Function to start and stop project (using endpoints)
     const handleProjectStatus = async (projectId, status) => {
         try {
             setLoadingProject(true);
             
-            if (status) {
+            if (status) { // If status is true, we are stopping the project
                 console.log("--> Stop Project:", projectId);
+                
+                // Mark the project as not completed when stopping it manually
+                removeCompletedProject(projectId);
+                
+                // Use the correct endpoint to stop the project
+                await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
                 
                 if (window.projectWebSockets && window.projectWebSockets[projectId]) {
                     const ws = window.projectWebSockets[projectId];
                     
                     if (ws.readyState === WebSocket.OPEN) {
-                        console.log("Send the STOP command to WebSocket");
+                        console.log("Sending STOP command to WebSocket");
                         ws.send(`STOP:${projectId}`);
                         
+                        // Wait for stop confirmation
                         const stopConfirmation = await new Promise((resolve) => {
                             const messageHandler = (event) => {
                                 try {
@@ -159,6 +368,7 @@ function ProjectDetails() {
                             
                             ws.addEventListener('message', messageHandler);
                             
+                            // Timeout in case confirmation is not received
                             setTimeout(() => {
                                 ws.removeEventListener('message', messageHandler);
                                 resolve({ status: 'timeout', projectId });
@@ -173,18 +383,20 @@ function ProjectDetails() {
                     console.log(`WebSocket connection for project ${projectId} closed`);
                 }
                 
-                await axios.put(`http://localhost:3001/projects/stop/${projectId}`);
-                
+                // Stop all streams associated with the project
                 if (project) {
                     for (const stream of project.streams) {
                         await stopStream(stream._id);
                     }
                 }
                 
-                setProject(prevProject => 
-                    prevProject ? { ...prevProject, status: false } : null
-                );
+                // Update the local project state
+                setProject(prevProject => ({
+                    ...prevProject,
+                    status: false
+                }));
                 
+                // Clear the percentages
                 setProjectPercentages(prev => {
                     const newPercentages = { ...prev };
                     delete newPercentages[projectId];
@@ -201,30 +413,36 @@ function ProjectDetails() {
                     return newPercentages;
                 });
                 
-                triggerRefresh();
-                
-            } else {
+            } else { // If status is false, we are starting the project
                 console.log("--> Play Project:", projectId);
                 
+                // Use the correct endpoint to start the project
                 await axios.put(`http://localhost:3001/projects/start/${projectId}`);
                 
+                // Start all streams associated with the project
                 if (project) {
                     for (const stream of project.streams) {
                         await startStream(stream._id);
                     }
                 }
                 
-                setProject(prevProject => 
-                    prevProject ? { ...prevProject, status: true, dateLastStarted: new Date() } : null
-                );
-
+                // Update the local project state
+                setProject(prevProject => ({
+                    ...prevProject,
+                    status: true,
+                    dateLastStarted: new Date().toISOString()
+                }));
+                
+                // Check if a WebSocket already exists for this project
                 if (window.projectWebSockets[projectId]) {
+                    // Close existing connection if there is one
                     const existingWs = window.projectWebSockets[projectId];
                     if (existingWs.readyState === WebSocket.OPEN) {
                         existingWs.close();
                     }
                 }
                 
+                // Create a new WebSocket
                 const ws = new WebSocket('ws://localhost:8082');
                 window.projectWebSockets[projectId] = ws;
 
@@ -249,9 +467,6 @@ function ProjectDetails() {
                     console.error('WebSocket error:', error);
                     alert('WebSocket connection error. Check the console for more details.');
                 };
-                
-                // 5. Trigger refresh to update the sidebar
-                triggerRefresh();
             }
 
             // Refresh project details after updating status
@@ -263,6 +478,7 @@ function ProjectDetails() {
             setLoadingProject(false);
         }
     };
+
 
     // Function to handle click event of "Add Stream" button
     const handleAddStreamClick = () => {
@@ -286,6 +502,9 @@ function ProjectDetails() {
                 }
                 delete window.projectWebSockets[id];
             }
+            
+            // Remove the project from the list of completed projects
+            removeCompletedProject(id);
             
             await axios.delete(`http://localhost:3001/projects/${project._id}`);
             // Redirecting the user to the projects page after successful deletion
