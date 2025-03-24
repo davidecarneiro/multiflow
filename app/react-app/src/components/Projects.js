@@ -18,6 +18,7 @@ function Projects() {
   const { triggerRefresh } = useRefresh();
   const handleProjectStatusRef = useRef();
   const [stoppingInProgress, setStoppingInProgress] = useState({});
+  const wsSetupCompleteRef = useRef({});
 
   // Get all projects
   useEffect(() => {
@@ -63,6 +64,17 @@ function Projects() {
     return completedProjects[projectId] === true;
   };
 
+  const removeCompletedProject = (projectId) => {
+    try {
+      const completedProjects = loadCompletedProjects();
+      delete completedProjects[projectId];
+      localStorage.setItem('completedProjects', JSON.stringify(completedProjects));
+      console.log(`Project ${projectId} removed from completed projects in localStorage`);
+    } catch (error) {
+      console.error('Error updating completed projects in localStorage:', error);
+    }
+  };
+
   // Function to start a stream
   const startStream = async (streamId) => {
     try {
@@ -104,14 +116,7 @@ function Projects() {
         console.log("--> Stop Project:", projectId);
         
         // Mark the project as not completed when stopping it manually
-        try {
-          const completedProjects = loadCompletedProjects();
-          delete completedProjects[projectId];
-          localStorage.setItem('completedProjects', JSON.stringify(completedProjects));
-          console.log(`Project ${projectId} removed from completed projects in localStorage`);
-        } catch (error) {
-          console.error('Error updating completed projects in localStorage:', error);
-        }
+        removeCompletedProject(projectId);
         
         // Send stop command to WebSocket
         if (window.projectWebSockets && window.projectWebSockets[projectId]) {
@@ -195,6 +200,12 @@ function Projects() {
           return newPercentages;
         });
         
+        // Reset the WebSocket setup flag for this project
+        wsSetupCompleteRef.current = {
+          ...wsSetupCompleteRef.current,
+          [projectId]: false
+        };
+        
         triggerRefresh();
         
       } else {
@@ -219,12 +230,18 @@ function Projects() {
         );
 
         // Check if a WebSocket already exists for this project
-        if (window.projectWebSockets[projectId]) {
+        if (window.projectWebSockets && window.projectWebSockets[projectId]) {
           // Close existing connection if there is one
           const existingWs = window.projectWebSockets[projectId];
           if (existingWs.readyState === WebSocket.OPEN) {
             existingWs.close();
           }
+          delete window.projectWebSockets[projectId];
+        }
+        
+        // Initialize the global WebSocket container if it doesn't exist
+        if (!window.projectWebSockets) {
+          window.projectWebSockets = {};
         }
         
         // Create a new WebSocket
@@ -246,11 +263,22 @@ function Projects() {
           if (window.projectWebSockets[projectId] === ws) {
             delete window.projectWebSockets[projectId];
           }
+          // Reset the WebSocket setup flag when connection is closed
+          wsSetupCompleteRef.current = {
+            ...wsSetupCompleteRef.current,
+            [projectId]: false
+          };
         };
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           alert('WebSocket connection error. Check the console for more details.');
+        };
+        
+        // Mark WebSocket setup as complete for this project
+        wsSetupCompleteRef.current = {
+          ...wsSetupCompleteRef.current,
+          [projectId]: true
         };
         
         triggerRefresh();
@@ -322,61 +350,11 @@ function Projects() {
           );
           
           // Stop the project via the API if it is not already in the process of being stopped
-          if (!stoppingInProgress[projectId]) {
+          if (!stoppingInProgress[projectId] && handleProjectStatusRef.current) {
             setStoppingInProgress(prev => ({ ...prev, [projectId]: true }));
             
-            // Call the API to stop the project
-            axios.put(`http://localhost:3001/projects/stop/${projectId}`)
-              .then(() => {
-                console.log('API call to stop project successful');
-                
-                // Stop all streams associated with the project
-                const project = projects.find(p => p._id === projectId);
-                if (project) {
-                  project.streams.forEach(stream => {
-                    stopStream(stream._id);
-                  });
-                }
-                
-                // Close the WebSocket
-                if (window.projectWebSockets && window.projectWebSockets[projectId]) {
-                  const ws = window.projectWebSockets[projectId];
-                  if (ws.readyState === WebSocket.OPEN) {
-                    ws.close();
-                  }
-                  delete window.projectWebSockets[projectId];
-                }
-                
-                // Clear the percentages
-                setProjectPercentages(prev => {
-                  const newPercentages = { ...prev };
-                  delete newPercentages[projectId];
-                  return newPercentages;
-                });
-                
-                setStreamPercentages(prev => {
-                  const newPercentages = { ...prev };
-                  if (project) {
-                    project.streams.forEach(stream => {
-                      delete newPercentages[stream._id];
-                    });
-                  }
-                  return newPercentages;
-                });
-                
-               // Update the list of projects
-                fetchProjects();
-              })
-              .catch(error => {
-                console.error('API call to stop project failed:', error);
-              })
-              .finally(() => {
-                setStoppingInProgress(prev => {
-                  const newStopping = { ...prev };
-                  delete newStopping[projectId];
-                  return newStopping;
-                });
-              });
+            // Call the API to stop the project using the ref to the current function
+            handleProjectStatusRef.current(projectId, true);
           }
         }
       } else if (parsedData.status === 'stopped' && parsedData.projectId === projectId) {
@@ -410,10 +388,11 @@ function Projects() {
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
     }
-  }, [projects, setProjectPercentages, setStreamPercentages, stoppingInProgress, fetchProjects]);
+  }, [projects, setProjectPercentages, setStreamPercentages, stoppingInProgress]);
 
   // Modify useEffect for WebSockets management
   useEffect(() => {
+    // Initialize the global WebSocket container if it doesn't exist
     if (!window.projectWebSockets) {
       window.projectWebSockets = {};
     }
@@ -421,7 +400,11 @@ function Projects() {
     // For each active project, check if it already has a WebSocket and create it if it doesn't
     projects.forEach(async (project) => {
       // Check if the project is active AND if it does not have a WebSocket already established
-      if (project.status && !window.projectWebSockets[project._id]) {
+      // AND if the WebSocket setup hasn't been completed for this project
+      if (project.status && 
+          !window.projectWebSockets[project._id] && 
+          !wsSetupCompleteRef.current[project._id]) {
+        
         console.log('Checking if project is completed before creating WebSocket', project._id);
         
         // Check if the project has already been marked as completed
@@ -447,6 +430,12 @@ function Projects() {
           } catch (error) {
             console.error('Error stopping completed project:', error);
           }
+          
+          // Mark WebSocket setup as complete for this project to prevent repeated attempts
+          wsSetupCompleteRef.current = {
+            ...wsSetupCompleteRef.current,
+            [project._id]: true
+          };
           
           return;
         }
@@ -489,11 +478,47 @@ function Projects() {
           if (window.projectWebSockets[project._id] === ws) {
             delete window.projectWebSockets[project._id];
           }
+          // Reset the WebSocket setup flag when connection is closed
+          wsSetupCompleteRef.current = {
+            ...wsSetupCompleteRef.current,
+            [project._id]: false
+          };
         };
         
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
         };
+        
+        // Mark WebSocket setup as complete for this project
+        wsSetupCompleteRef.current = {
+          ...wsSetupCompleteRef.current,
+          [project._id]: true
+        };
+      } else if (project.status && window.projectWebSockets[project._id]) {
+        console.log('Using existing WebSocket for project', project._id);
+        
+        // Add event listener to the existing WebSocket to ensure this component
+        // receives and processes messages
+        const existingWs = window.projectWebSockets[project._id];
+        
+        // Only add the event listener if the WebSocket is open
+        if (existingWs.readyState === WebSocket.OPEN && !wsSetupCompleteRef.current[project._id]) {
+          const messageHandler = (event) => {
+            handleWebSocketMessage(project._id, event.data);
+          };
+          
+          // Add the message handler
+          existingWs.addEventListener('message', messageHandler);
+          
+          // Mark WebSocket setup as complete for this project
+          wsSetupCompleteRef.current = {
+            ...wsSetupCompleteRef.current,
+            [project._id]: true
+          };
+          
+          // We don't remove this event listener when the component unmounts
+          // because we want the WebSocket to continue functioning across page navigations
+        }
       }
     });
 
