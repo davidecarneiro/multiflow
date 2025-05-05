@@ -80,3 +80,6 @@ PRIVATE*
 
 # Ignore "code" folder inside faust
 faust/code/
+
+# Ignore the assets folder
+assets/
