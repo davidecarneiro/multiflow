@@ -1,4 +1,8 @@
-<img src="assets/mf-logo.png" alt="MultiFlow Logo" width="300"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/MultiFlow.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/mf-logo.png">
+  <img alt="MultiFlow Logo" src="assets/mf-logo.png" width="300"/>
+</picture>
 
 # ℹ️ What is MultiFlow?
 
