@@ -25,7 +25,7 @@ To run MultiFlow locally, make sure you have the following installed:
 * [Docker](https://www.docker.com/)
 * [Node.js](https://nodejs.org/)
 
-### 1. Clone the Repository
+#### 1. Clone the Repository
 
 Open a terminal and clone the repo:
 
@@ -33,7 +33,7 @@ Open a terminal and clone the repo:
 git clone https://github.com/davidecarneiro/multiflow.git
 ```
 
-### 2. Install Node Dependencies
+#### 2. Install Node Dependencies
 
 Navigate to the `app/` folder and install dependencies in the following subfolders:
 
@@ -50,7 +50,7 @@ cd ../ws
 npm install
 ```
 
-### 3. Start the Backend with Docker
+#### 3. Start the Backend with Docker
 
 In a **new terminal**, run:
 
@@ -62,11 +62,11 @@ docker compose up
 
 This will pull and launch the required containers.
 
-### 4. Verify the Containers
+#### 4. Verify the Containers
 
 Check that all containers are up and running. If any are failing, try restarting them or double-check if additional dependencies are needed.
 
-### 5. Start the Frontend (React)
+#### 5. Start the Frontend (React)
 
 The React frontend is **not yet containerized** to simplify development during active changes.
 To launch it manually:
