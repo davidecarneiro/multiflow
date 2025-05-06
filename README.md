@@ -43,13 +43,19 @@ Navigate to the `app/` folder and install dependencies in the following subfolde
 
 ```bash
 cd multiflow/app
+```
 
+```
 cd node
 npm install
+```
 
+```
 cd ../react-app
 npm install
+```
 
+```
 cd ../ws
 npm install
 ```
@@ -86,3 +92,7 @@ This should open the app in your browser at `http://localhost:3000`.
 
 🎉 You’re all set! Happy prototyping! 🤓
 (And hey — if things feel confusing, check out the [Quick Start Guide](#) to get up to speed quickly.)
+
+## Acknowledgments
+
+This work has been supported by the European Union under the Next Generation EU, through a grant of the Portuguese Republic's Recovery and Resilience Plan (PRR) Partnership Agreement, within the scope of the project PRODUTECH R3 – "Agenda Mobilizadora da Fileira das Tecnologias de Produção para a Reindustrialização", Total project investment: 166.988.013,71 Euros; Total Grant: 97.111.730,27 Euros. 
