@@ -91,7 +91,7 @@ This should open the app in your browser at `http://localhost:3000`.
 ##
 
 🎉 You’re all set! Happy prototyping! 🤓
-(And hey — if things feel confusing, check out the [Quick Start Guide](#) to get up to speed quickly.)
+(And hey — if things feel confusing, check out the [Quick Start Guide](#-quick-start-guide) to get up to speed quickly.)
 
 ----
 
@@ -180,6 +180,13 @@ Here's a simplified visual breakdown:
 Each App in MultiFlow follows a modular design. You define the logic; MultiFlow takes care of the plumbing — connecting topics, injecting config, managing deployment, and storing results. This makes it easy to reuse and remix logic across different data streams or use cases.
 
 > 💡 Whether you're printing sensor values or detecting drift using a statistical test — you're always following the same structure. That's the power of Apps.
+
+---
+
+## ⚡ Quick Start Guide
+
+🚧 _Still under construction... Coming soon! Stay tuned for step-by-step guidance to get your first simulation and App running in no time!_
+
 
 ## Acknowledgments
 
