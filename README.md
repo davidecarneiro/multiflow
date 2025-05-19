@@ -16,7 +16,7 @@ By mimicking operational conditions without the actual risks, MultiFlow helps st
 - **Stream any dataset** in real time with fully customizable parameters like lines-per-second or stream duration.
 - **Start, pause, or replay** your simulations on demand — perfect for iterative testing.
 - **Create and plug in custom Python algorithms ("Apps")** to consume the stream and generate live outputs.  
-  *(Note: Apps must follow the MultiFlow structure and meet streaming compatibility requirements. See the [Apps Tutorial](#) for details.)*
+  *(Note: Apps must follow the MultiFlow structure and meet streaming compatibility requirements. See the [Apps Tutorial](#how-multiflow-apps-work) for details.)*
 - **Test multiple versions** of your Apps ("Instances") effortlessly — tweak parameters, switch input streams, and compare results.
 - **Get real-time dashboards via Grafana** for each Instance, giving you immediate feedback on algorithm performance.  
   *(Note: Grafana setup is required before first use.)*
@@ -88,10 +88,98 @@ npm start
 
 This should open the app in your browser at `http://localhost:3000`.
 
----
+##
 
 🎉 You’re all set! Happy prototyping! 🤓
 (And hey — if things feel confusing, check out the [Quick Start Guide](#) to get up to speed quickly.)
+
+----
+
+## 📦 Apps in MultiFlow
+
+Apps in Multiflow are Python-based scripts that must have a specific structure, designed to handle specific streaming tasks, implemented in Faust. These can range from basic operations like data aggregation, filtering, or feature extraction, to more advanced algorithms such as detecting concept drift, identifying anomalies, or running machine learning models.
+
+Every App follows a clean and modular structure:
+
+1. **Import Required Libraries**
+
+   * Typical imports include stream processing, machine learning, data manipulation, etc.
+
+   ```python
+   import faust
+   import pandas as pd
+   from influxdb_client import InfluxDBClient
+   ```
+
+2. **Set Configurations via Environment Variables**
+
+   * These values are typically provided by the MultiFlow frontend/backend automatically and passed as environment variables.
+   * You can still provide default values, which are used only if the frontend hasn't defined them:
+
+   ```python
+   APP_NAME = os.getenv('APP_NAME', 'MyApp')  # 'APP_NAME' comes from frontend; 'MyApp' is default fallback
+   TOPIC_NAME = os.getenv('TOPIC_NAME', 'my_topic')
+   ```
+
+   * Examples of environment configs:
+     * App name, topic name, port number
+     * Output file name
+     * InfluxDB connection data (optional)
+     * Model parameters (batch size, threshold, etc.)
+
+3. **Define Custom Parameters**
+
+   * Use env variables or fixed values for:
+     * How many samples to use
+     * Batch size for analysis
+     * Thresholds, time windows, etc.
+
+    ```python
+    THRESHOLD_VALUE = float(os.getenv('THRESHOLD', '0.9')) # 0.9 is the default threshold value;
+    # THRESHOLD is the variable that receives the configured value
+    ```
+
+4. **App Initialization**
+
+   * Set up Faust, connect to Kafka topic, configure any output databases or files.
+
+   ```python
+   app = faust.App(APP_NAME, broker='kafka://localhost:9092')
+   topic = app.topic(TOPIC_NAME)
+   ```
+
+5. **Custom Logic Implementation**
+
+   * The core of your App: what it does with each piece of data.
+   * Could be a simple print or a complex model with feedback.
+
+   ```python
+   @app.agent(topic)
+   async def process(stream):
+       async for event in stream:
+           print(event)
+           # Do stats, ML, alerting...
+   ```
+
+
+6. **Optional Outputs**
+   * Write results to:
+     * **Logs** (for debugging or monitoring)
+     * **Files** (e.g., CSVs)
+     * **Databases** (e.g., InfluxDB)
+     * **Alerts** (e.g., send notification or trigger some action)
+
+##
+
+Here's a simplified visual breakdown:
+
+<img alt="Apps in Multiflow" src="assets/App-Diagram.png" width="300"/>
+
+### ✅ Summary
+
+Each App in MultiFlow follows a modular design. You define the logic; MultiFlow takes care of the plumbing — connecting topics, injecting config, managing deployment, and storing results. This makes it easy to reuse and remix logic across different data streams or use cases.
+
+> 💡 Whether you're printing sensor values or detecting drift using a statistical test — you're always following the same structure. That's the power of Apps.
 
 ## Acknowledgments
 
