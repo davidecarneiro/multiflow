@@ -185,8 +185,148 @@ Each App in MultiFlow follows a modular design. You define the logic; MultiFlow 
 
 ## ⚡ Quick Start Guide
 
-🚧 _Still under construction... Coming soon! Stay tuned for step-by-step guidance to get your first simulation and App running in no time!_
+#### 🧠 Quick Start Guide for MultiFlow
 
+Welcome to the Quick Start Guide! Here you’ll (hopefully) learn how to get MultiFlow up and running for your first streaming experiment. In this example, we’ll focus on a classic problem in real-time data processing: **Anomaly Detection**.
+
+But before we dive in...
+
+#### ✅ Prerequisites:
+
+* You’ve completed the [Installation Guide](#-installation-guide) without issues;
+* All Docker containers are running and the MultiFlow interface is open in your browser;
+* You have a beer 🍺 (or water if you’re under 18 or on the clock 🧃) and some peanuts 🥜.
+
+### 📁 Step 1: Transforming a Dataset for Streaming
+
+#### 🛠 Preparing the Data
+
+First, grab the sample dataset `Labeled_Expanded.csv` (link coming soon). Place it in the `datasets` folder under the root `multiflow` project directory.
+
+Here’s a simple folder layout:
+
+```
+multiflow/
+├── app/
+├── datasets/ ← Put your dataset here
+├── docker-compose.yml
+├── grafana/
+└── README.md
+```
+
+#### ➕ Adding the Project and Stream
+
+Now open the MultiFlow web interface and follow these steps:
+
+1. Navigate to the **Projects** tab.
+2. Click **Add Project** in the top right.
+3. Fill in the project info as you like (use our values if you're following the tutorial).
+4. Once created, open the project and click **Add Stream**.
+5. Again, fill out the form as you prefer, but **memorize the Stream Topic**. We’ll use `Labeled_Streaming` here.
+6. Set `Data Source Type` to `File` and select `Labeled_Expanded.csv` as the `File Path`.
+7. For `Playback Configuration`, choose `Lines per Second` and set it to `5`.
+8. Click **Create**.
+
+Boom! 🎉 You’ve got a stream ready to go.
+
+---
+
+### 🤖 Step 2: Creating the App
+
+#### 🧪 The Idea
+
+We’ll use an ensemble of Isolation Forests to detect anomalies in real-time. Don’t worry if that sounds complex—we’ll break it down.
+
+#### 📄 Coding the App
+
+You can either write your own Faust-compatible Python app or download our starter one (link coming soon). If you’re skipping ahead, jump to [Adding the App](#adding-the-app-and-instance).
+
+*(Insert Python coding instructions here later)*
+
+#### 🧩 Adding the App and Instance
+
+1. Go to the **Apps** tab.
+2. Click **Add App**.
+3. Fill out the form and upload the Python file (e.g., `AnomalyDetection_EnsembleIsolationForest.py`).
+4. Under `Custom Fields`, list each parameter your Python file requires:
+
+   * Set the **Name** to match the variable in your Python code.
+   * Choose the appropriate **Type** (number, string, etc.).
+5. Once done, click **Create**.
+6. Open the new App, and click **Add Instance**.
+7. Give it a name and pick a **unique port** that isn’t used.
+8. Select the correct **Stream Topic** (e.g., `Labeled_Streaming`).
+9. Provide values for the **Custom Fields** you defined earlier.
+10. Click **Create**.
+
+Your app is now ready to consume data! 💻
+
+### 📊 Step 3: Setting up Grafana
+
+#### 🔌 Logging In & Connecting InfluxDB
+
+Let’s wire Grafana to the data source:
+
+1. Visit `http://localhost:3002/`.
+2. Login:
+
+   * Username: `admin`
+   * Password: `admin`
+3. Go to **Connections > Data Sources**.
+4. Check if `influxdb` is listed. If not:
+
+   * Click **Add new data source**
+   * Choose **InfluxDB**
+   * Set **Query Language** to `Flux`
+   * Set **URL** to `http://influxdb_server:8086`
+   * Under **InfluxDB Details**, set "Organization" to `multiflow`
+   * Click **Save & Test**
+
+#### 📈 Adding Your Chart
+
+1. Go to **Dashboards** > **New Dashboard**.
+2. Click **Add Visualization** and select the `influxdb` source.
+3. Use **Query A** to pull all data.
+4. Use **Query B** to pull only flagged anomalies.
+
+*(Insert sample Flux queries here later)*
+
+Customize the chart however you want—it’s all Grafana from here 😎.
+
+### 🚀 Step 4: Running the Pipeline
+
+#### ▶️ Starting the Instance
+
+1. Go to **Apps** and open your app.
+2. Click the toggle button next to your instance.
+3. Wait for `Worker ready` in the logs before continuing.
+
+> Tip: You’ll find quick access to active instances in the side menu.
+
+#### 🔁 Starting the Stream
+
+1. Go to the **Projects** page.
+2. Find your project and click the **Play** button.
+3. You’ll see progress based on your configured stream speed.
+
+> You can also access active streams quickly from the side menu.
+
+#### 👀 Viewing the Results
+
+Your data is now being processed! Check:
+
+* **Grafana Dashboards** for live charts;
+* **Local output files**, depending on your app’s config.
+
+Having issues? Check the Faust logs on the instance details page.
+
+### 🎉 Conclusion
+
+We hope this guide helped you get started with MultiFlow. Try out different use cases, plug in your own apps, and see how far you can push your stream simulations.
+
+Happy hacking! 💻✨
+
+---
 
 ## Acknowledgments
 
