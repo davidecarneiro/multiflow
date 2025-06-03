@@ -175,7 +175,7 @@ Here's a simplified visual breakdown:
 
 <img alt="Apps in Multiflow" src="assets/App-Diagram.png" />
 
-### ✅ Summary
+### Summary
 
 Each App in MultiFlow follows a modular design. You define the logic; MultiFlow takes care of the plumbing — connecting topics, injecting config, managing deployment, and storing results. This makes it easy to reuse and remix logic across different data streams or use cases.
 
@@ -227,6 +227,8 @@ Now open the MultiFlow web interface and follow these steps:
 7. For `Playback Configuration`, choose `Lines per Second` and set it to `5`.
 8. Click **Create**.
 
+![Preview of Adding a Project and Stream](https://imgur.com/a/Tt7olGP)
+
 Boom! 🎉 You’ve got a stream ready to go.
 
 ---
@@ -258,6 +260,8 @@ You can either write your own Faust-compatible Python app or download our starte
 8. Select the correct **Stream Topic** (e.g., `Labeled_Streaming`).
 9. Provide values for the **Custom Fields** you defined earlier.
 10. Click **Create**.
+
+![Preview of Adding a App and Instance](https://imgur.com/a/Tt7olGP)
 
 Your app is now ready to consume data! 💻
 
