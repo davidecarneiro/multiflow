@@ -241,7 +241,7 @@ We’ll use an ensemble of Isolation Forests to detect anomalies in real-time. D
 
 #### 📄 Coding the App
 
-You can either write your own Faust-compatible Python app or use our starter one (above). If you’re skipping ahead, jump to [Adding the App](#adding-the-app-and-instance).
+You can either write your own Faust-compatible Python app or use our starter one (above) or available at [AnomalyDetection_EnsembleIsolationForest.py](https://raw.githubusercontent.com/davidecarneiro/multiflow/refs/heads/main/app/faust/code/AnomalyDetection_EnsembleIsolationForest.py). If you’re skipping ahead, jump to [Adding the App](#adding-the-app-and-instance).
 
 This code consumes a Kafka stream with numerical features, builds an Isolation Forest ensemble model, flags anomalies, and streams the result to InfluxDB.
 
