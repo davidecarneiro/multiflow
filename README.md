@@ -358,7 +358,18 @@ async def anomaly_detection_agent(stream):
 if __name__ == '__main__':
     app.main()
 ```
-This script is great for getting started quickly with streaming anomaly detection. It's fully compatible with the visualization setup described above!
+
+Place it in the `code` folder under the `faust` folder.
+
+Here’s a simple folder layout:
+
+```
+multiflow/app/faust/
+├── code/ ← Put your script here
+├── Dockerfile.yml 
+├── models/
+└── server/
+```
 
 #### 🧩 Adding the App and Instance
 
