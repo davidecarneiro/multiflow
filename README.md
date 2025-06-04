@@ -227,7 +227,7 @@ Now open the MultiFlow web interface and follow these steps:
 7. For `Playback Configuration`, choose `Lines per Second` and set it to `5`.
 8. Click **Create**.
 
-![Preview of Adding a Project and Stream](https://imgur.com/a/Tt7olGP)
+![Preview of Adding a Project and Stream](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExenZjcmdtNWp2bHQ2empjYTFhbnUyMmZsNXJ0czVvanF1ZDM3ajR5byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NmKWWgCy7O4XpBWPSP/giphy.gif)
 
 Boom! 🎉 You’ve got a stream ready to go.
 
@@ -261,9 +261,11 @@ You can either write your own Faust-compatible Python app or download our starte
 9. Provide values for the **Custom Fields** you defined earlier.
 10. Click **Create**.
 
-![Preview of Adding a App and Instance](https://imgur.com/a/Tt7olGP)
+![Preview of Adding a App and Instance](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExenk0dDhmajllM3VtcW1xczBtOTV3dzBrMHcxaWlxOXNwMHM4aWF1bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YE9Sf2bF62cN5ZFMjK/giphy.gif)
 
 Your app is now ready to consume data! 💻
+
+---
 
 ### 📊 Step 3: Setting up Grafana
 
@@ -293,9 +295,62 @@ Let’s wire Grafana to the data source:
 3. Use **Query A** to pull all data.
 4. Use **Query B** to pull only flagged anomalies.
 
-*(Insert sample Flux queries here later)*
+As you might have noticed, we use two different Flux queries here. This separation improves visualization clarity by letting us style anomalies differently (e.g., red dots or lines), without modifying the original data structure.
+
+##
+
+### 🔹 Query A: Pull All Data
+
+This query loads all the relevant measurements (`col1` to `col5`) from the selected time range.
+
+```flux
+from(bucket: "faust_app")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "AD-Labeled_Streaming")
+  // Keep only the fields of interest
+  |> filter(fn: (r) => r["_field"] == "col1" or r["_field"] == "col2" or r["_field"] == "col3" or r["_field"] == "col4" or r["_field"] == "col5")
+  // Rename fields to readable labels for the chart
+  |> map(fn: (r) => ({
+        _value: r._value,
+        _time: r._time,
+        _field: if r._field == "col1" then "InjectionTime" else
+                if r._field == "col2" then "PlastificationTime" else
+                if r._field == "col3" then "CycleTime" else
+                if r._field == "col4" then "Pillow" else
+                if r._field == "col5" then "MaxPressure" else r._field
+    }))
+```
+##
+
+### 🔹 Query B: Pull Only Anomalies
+
+This query is similar to Query A, but it filters rows where `anomaly == "yes"` (if you are using "yes" as label in your App), showing only flagged data points.
+
+```flux
+from(bucket: "faust_app")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "AD-Labeled_Streaming")
+  // Keep only the fields of interest
+  |> filter(fn: (r) => r["_field"] == "col1" or r["_field"] == "col2" or r["_field"] == "col3" or r["_field"] == "col4" or r["_field"] == "col5")
+  // Keep only anomalies
+  |> filter(fn: (r) => r["anomaly"] == "yes")
+  // Rename all fields to just "Anomaly" for consistent styling
+  |> map(fn: (r) => ({
+        _value: r._value,
+        _time: r._time,
+        _field: "Anomaly"
+    }))
+```
+
+> 💡 By renaming all anomaly fields to the same label ("Anomaly"), you can style them collectively in Grafana (e.g., red color, different shape).
+
+##
+
+![Preview of Grafana Setup](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExNno4cWJ1OG5zNG8zMzF5NXV3a2dlYXZ3bXdvMXdqYzk3a2Zpd245YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OPCW42S38X8Qum83IQ/giphy.gif)
 
 Customize the chart however you want—it’s all Grafana from here 😎.
+
+---
 
 ### 🚀 Step 4: Running the Pipeline
 
@@ -322,7 +377,9 @@ Your data is now being processed! Check:
 * **Grafana Dashboards** for live charts;
 * **Local output files**, depending on your app’s config.
 
-Having issues? Check the Faust logs on the instance details page.
+> Having issues? Check the Faust logs on the instance details page.
+
+![Preview of Grafana Setup](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ21wdGdmOGEyZXRiajhwN3RudGp4ZXdtZzN5cTIxeWp1N3IzZzF4YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/s4trZLc7Lf69VNtUN8/giphy.gif)
 
 ### 🎉 Conclusion
 
