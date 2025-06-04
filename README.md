@@ -201,7 +201,7 @@ But before we dive in...
 
 #### 🛠 Preparing the Data
 
-First, grab the sample dataset `Labeled_Expanded.csv` (link coming soon). Place it in the `datasets` folder under the root `multiflow` project directory.
+First, grab the sample dataset [Labeled_Expanded.csv](https://raw.githubusercontent.com/davidecarneiro/multiflow/refs/heads/main/datasets/Labeled_Streaming.csv). Place it in the `datasets` folder under the root `multiflow` project directory.
 
 Here’s a simple folder layout:
 
