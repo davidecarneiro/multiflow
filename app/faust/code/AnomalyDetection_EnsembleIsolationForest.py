@@ -5,16 +5,10 @@ from sklearn.ensemble import IsolationForest
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-# Fetching required environment variables
+# Fetching environment variables and configurations
 InstanceName = os.getenv('Name', 'InstanceName')
 InstancePort = os.getenv('Port', '6066')
 StreamTopic = os.getenv('StreamTopic', 'phd_kafka')
-initial_block_size = int(os.getenv('InitialBlockSize', '100'))
-update_interval = int(os.getenv('UpdateInterval', '25'))
-OutputFileName = os.getenv('OutputFileName', 'AnomalyDetection-Test')
-
-# InfluxDB configuration
-CollectionName = os.getenv('CollectionName', 'anomaly_detection')
 influxdb_url = os.getenv('INFLUXDB_URL', 'http://influxdb_server:8086')
 influxdb_token = os.getenv('INFLUXDB_TOKEN', 'admin')
 influxdb_org = os.getenv('INFLUXDB_ORG', 'multiflow')
@@ -25,6 +19,12 @@ app = faust.App(InstanceName, broker='kafka_server://localhost:9092', web_port=i
 topic = app.topic(StreamTopic)
 influx_client = InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org)
 write_api = influx_client.write_api(write_options=SYNCHRONOUS)
+
+# Fetching values for Custom Fields
+OutputFileName = os.getenv('OutputFileName', 'AnomalyDetection-Test')
+CollectionName = os.getenv('CollectionName', 'AD-Ensemble-Method')
+initial_block_size = int(os.getenv('InitialBlockSize', '100'))
+update_interval = int(os.getenv('UpdateInterval', '25'))
 
 # Placeholder for data
 received_data = pd.DataFrame()
