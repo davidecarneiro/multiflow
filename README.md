@@ -227,7 +227,7 @@ Now open the MultiFlow web interface and follow these steps:
 7. For `Playback Configuration`, choose `Lines per Second` and set it to `5`.
 8. Click **Create**.
 
-![Preview of Adding a Project and Stream](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExenZjcmdtNWp2bHQ2empjYTFhbnUyMmZsNXJ0czVvanF1ZDM3ajR5byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NmKWWgCy7O4XpBWPSP/giphy.gif)
+![Preview of Adding a Project and Stream](assets/AddProjectAndStream.gif)
 
 Boom! 🎉 You’ve got a stream ready to go.
 
@@ -241,123 +241,7 @@ We’ll use an ensemble of Isolation Forests to detect anomalies in real-time. D
 
 #### 📄 Coding the App
 
-You can either write your own Faust-compatible Python app or use our starter one (above) or available at [AnomalyDetection_EnsembleIsolationForest.py](https://raw.githubusercontent.com/davidecarneiro/multiflow/refs/heads/main/app/faust/code/AnomalyDetection_EnsembleIsolationForest.py). If you’re skipping ahead, jump to [Adding the App](#adding-the-app-and-instance).
-
-This code consumes a Kafka stream with numerical features, builds an Isolation Forest ensemble model, flags anomalies, and streams the result to InfluxDB.
-
-```
-import faust
-import os
-import pandas as pd
-from sklearn.ensemble import IsolationForest
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
-
-# === Config & Setup ===
-InstanceName = os.getenv('Name', 'InstanceName')
-InstancePort = os.getenv('Port', '6066')
-StreamTopic = os.getenv('StreamTopic', 'phd_kafka')
-influxdb_url = os.getenv('INFLUXDB_URL', 'http://influxdb_server:8086')
-influxdb_token = os.getenv('INFLUXDB_TOKEN', 'admin')
-influxdb_org = os.getenv('INFLUXDB_ORG', 'multiflow')
-influxdb_bucket = os.getenv('INFLUXDB_BUCKET', 'faust_app')
-
-app = faust.App(InstanceName, broker='kafka_server://localhost:9092', web_port=int(InstancePort))
-topic = app.topic(StreamTopic)
-influx_client = InfluxDBClient(url=influxdb_url, token=influxdb_token, org=influxdb_org)
-write_api = influx_client.write_api(write_options=SYNCHRONOUS)
-
-# Fetching values for your Custom Fields
-OutputFileName = os.getenv('OutputFileName', 'AnomalyDetection-Test') # 1st value comes from the frontend; 2nd value is a default value (in case your forget it)
-CollectionName = os.getenv('CollectionName', 'AD-Labeled_Streaming')
-initial_block_size = int(os.getenv('InitialBlockSize', '50'))
-update_interval = int(os.getenv('UpdateInterval', '50'))
-
-# Placeholder for data
-received_data = pd.DataFrame()
-isolation_forest_model = None
-
-# Function to train or update the Isolation Forest model
-def train_isolation_forest(dataframe, contamination=0.1):
-    model = IsolationForest(n_estimators=100, max_samples='auto', contamination=contamination, random_state=42)
-    model.fit(dataframe)
-    return model
-
-# Function to detect anomalies using the Isolation Forest model
-def detect_anomalies(model, data):
-    # Prediction: -1 indicates anomaly, 1 indicates normal
-    scores = model.decision_function(data)
-    predictions = model.predict(data)
-    return scores, predictions
-
-# Function to send data to InfluxDB
-def send_to_influxdb(row_df, CollectionName):
-    for _, row in row_df.iterrows():
-        point = Point(CollectionName).tag("anomaly", row['anomaly'])
-        for column in row.index:
-            if column != 'anomaly':
-                point = point.field(column, float(row[column]))
-        write_api.write(bucket=influxdb_bucket, record=point)
-        print(f"Data point written to InfluxDB: {row.to_dict()}")
-
-# Faust agent to process messages and detect anomalies
-@app.agent(topic)
-async def anomaly_detection_agent(stream):
-    global received_data, isolation_forest_model
-
-    row_count = 0
-    numeric_columns = None
-
-    async for event in stream:
-        # Parsing the incoming event to create a DataFrame row
-        csv_data = event.get('csv_data', '')
-        try:
-            row_values = list(map(float, csv_data.split(',')))
-            num_columns = len(row_values)
-            column_names = [f'col{i+1}' for i in range(num_columns)]
-            row_df = pd.DataFrame([row_values], columns=column_names)
-            print("Parsed DataFrame row:", row_df)
-        except ValueError:
-            print(f"Skipping event due to parsing error: {csv_data}")
-            continue
-
-        # Initializing columns and training initial Isolation Forest model
-        if numeric_columns is None:
-            numeric_columns = row_df.select_dtypes(include='number').columns.tolist()
-            initial_data = pd.concat([received_data, row_df]).head(initial_block_size)
-            isolation_forest_model = train_isolation_forest(initial_data[numeric_columns])
-            print("Initial Isolation Forest model trained.")
-
-        # Ensuring numeric column consistency
-        row_df = row_df[numeric_columns]
-
-        # Detecting anomalies
-        scores, predictions = detect_anomalies(isolation_forest_model, row_df)
-        row_df['scores'] = scores
-        row_df['anomaly'] = ['yes' if pred == -1 else 'no' for pred in predictions]
-        
-        # Appending row to received data and update row count
-        received_data = pd.concat([received_data, row_df], ignore_index=True)
-        row_count += 1
-
-        # Sending data to InfluxDB
-        send_to_influxdb(row_df, CollectionName=CollectionName)
-
-        # Periodically updating the Isolation Forest model every `update_interval` rows
-        if row_count % update_interval == 0:
-            recent_data = received_data[numeric_columns].iloc[-initial_block_size:]
-            isolation_forest_model = train_isolation_forest(recent_data)
-            print(f"Isolation Forest model updated after {row_count} rows.")
-
-        # Saving to CSV in batches of 100 rows
-        if row_count % 100 == 0:
-            received_data.to_csv(f"{OutputFileName}.csv", index=False)
-            print("CSV file updated with latest events.")
-
-# Entry point for the application
-if __name__ == '__main__':
-    app.main()
-```
+You can either write your own Faust-compatible Python app or use our starter one (above) or available at [AnomalyDetection_EnsembleIsolationForest.py](https://raw.githubusercontent.com/davidecarneiro/multiflow/refs/heads/main/app/faust/code/AnomalyDetection_EnsembleIsolationForest.py). This code consumes a Kafka stream with numerical features, builds an Isolation Forest ensemble model, flags anomalies, and streams the result to InfluxDB. If you’re skipping ahead, jump to [Adding the App](#adding-the-app-and-instance).
 
 Place it in the `code` folder under the `faust` folder.
 
@@ -387,7 +271,7 @@ multiflow/app/faust/
 9. Provide values for the **Custom Fields** you defined earlier.
 10. Click **Create**.
 
-![Preview of Adding a App and Instance](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExenk0dDhmajllM3VtcW1xczBtOTV3dzBrMHcxaWlxOXNwMHM4aWF1bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YE9Sf2bF62cN5ZFMjK/giphy.gif)
+![Preview of Adding a App and Instance](assets/AddAppAndInstance.gif)
 
 Your app is now ready to consume data! 💻
 
@@ -472,7 +356,7 @@ from(bucket: "faust_app")
 
 ##
 
-![Preview of Grafana Setup](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExNno4cWJ1OG5zNG8zMzF5NXV3a2dlYXZ3bXdvMXdqYzk3a2Zpd245YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OPCW42S38X8Qum83IQ/giphy.gif)
+![Preview of Grafana Setup](assets/GrafanaSetup.gif)
 
 Customize the chart however you want—it’s all Grafana from here 😎.
 
@@ -505,7 +389,7 @@ Your data is now being processed! Check:
 
 > Having issues? Check the Faust logs on the instance details page.
 
-![Preview of Grafana Setup](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ21wdGdmOGEyZXRiajhwN3RudGp4ZXdtZzN5cTIxeWp1N3IzZzF4YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/s4trZLc7Lf69VNtUN8/giphy.gif)
+![Starting Up](assets/StartUp.gif)
 
 ### 🎉 Conclusion
 
