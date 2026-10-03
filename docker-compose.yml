@@ -1,7 +1,12 @@
 version: '3'
 services:
+  # The Confluent images are pinned because the broker below is configured
+  # through ZooKeeper (KAFKA_ZOOKEEPER_CONNECT). Confluent Platform 8.0
+  # (Kafka 4.0) removed ZooKeeper support, so with ":latest" the broker no
+  # longer starts from a fresh clone. Moving past 7.x requires migrating this
+  # configuration to KRaft.
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.6.1
     networks: 
       - broker-kafka
     environment:
@@ -9,7 +14,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.6.1
     container_name: kafka_server
     networks: 
       - broker-kafka

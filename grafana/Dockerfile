@@ -1,7 +1,7 @@
 #FROM node:16-alpine AS node
 FROM node:21-alpine AS node
 
-FROM grafana/grafana-oss
+FROM grafana/grafana-oss:11.5.1
 
 USER root
 
